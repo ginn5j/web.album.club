@@ -15,8 +15,8 @@ on:
 # ──────────────────────────────────────────────────────────────────────────────
 env:
   PAGES_REPO: ginn5j/ginn5j.github.io
-  PAGES_DIR: assets/album-club
-  VITE_BASE_URL: /assets/album-club
+  PAGES_DIR: album-club
+  VITE_BASE_URL: /album-club
 
 jobs:
   deploy:

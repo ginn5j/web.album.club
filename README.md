@@ -125,7 +125,7 @@ If you use a fine-grained org token (Option A) and want to publish discussions t
 ### Discussion reveal
 - Either member can trigger the reveal from `/discuss`
 - Reveal writes `reveal.json` to the triggering member's branch
-- All open clients detect the reveal within the poll interval (30s) and unmask simultaneously
+- All open clients detect the reveal within the poll interval (15s) and unmask simultaneously
 - The merged discussion is written to `discussions/{albumId}.json` on `main`
 
 ### Past discussions
@@ -185,8 +185,8 @@ The workflow pushes the built app into a directory of an existing GitHub Pages r
 | Variable | Description |
 |----------|-------------|
 | `PAGES_REPO` | GitHub repository to deploy to (e.g. `alice/alice.github.io`) |
-| `PAGES_DIR` | Directory inside that repo (e.g. `assets/album-club`) |
-| `VITE_BASE_URL` | URL path where the app will be served (e.g. `/assets/album-club`) |
+| `PAGES_DIR` | Directory inside that repo (e.g. `album-club`) |
+| `VITE_BASE_URL` | URL path where the app will be served (e.g. `/album-club`) |
 
 The workflow authenticates to the pages repo using a secret named `PAGES_PAT`. Add a fine-grained PAT with **Contents: Read and write** access to your pages repo under **Settings → Secrets and variables → Actions** in this repo.
 
