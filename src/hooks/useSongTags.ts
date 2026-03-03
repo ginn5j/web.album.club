@@ -14,6 +14,8 @@ export function useSongTags(
 
   useEffect(() => {
     if (!settings || !branch || !albumId) return
+    setTags({})
+    setError(null)
     readTags(settings.pat, settings.repoOwner, settings.repoName, branch, albumId)
       .then((file) => {
         if (file) setTags(file.tags)

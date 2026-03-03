@@ -19,6 +19,9 @@ export function useNotes(
 
   useEffect(() => {
     if (!settings || !branch || !albumId) return
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setNotes('')
+    setError(null)
     readNotes(settings.pat, settings.repoOwner, settings.repoName, branch, albumId)
       .then((file) => {
         if (file) setNotes(file.notes)
