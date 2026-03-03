@@ -180,9 +180,15 @@ npm run preview
 
 Push to `main` — the GitHub Actions workflow in `.github/workflows/deploy.yml` builds and deploys automatically.
 
-Before first deploy, enable Pages in the repo settings: **Settings → Pages → Source: GitHub Actions**.
+The workflow pushes the built app into a directory of an existing GitHub Pages repo. Edit the three variables at the top of `deploy.yml` to match your setup:
 
-The build uses `VITE_BASE_URL=/web.album.club` as the base path. Update this in `deploy.yml` if your repo is named differently.
+| Variable | Description |
+|----------|-------------|
+| `PAGES_REPO` | GitHub repository to deploy to (e.g. `alice/alice.github.io`) |
+| `PAGES_DIR` | Directory inside that repo (e.g. `assets/album-club`) |
+| `VITE_BASE_URL` | URL path where the app will be served (e.g. `/assets/album-club`) |
+
+The workflow authenticates to the pages repo using a secret named `PAGES_PAT`. Add a fine-grained PAT with **Contents: Read and write** access to your pages repo under **Settings → Secrets and variables → Actions** in this repo.
 
 ---
 

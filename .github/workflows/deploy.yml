@@ -5,17 +5,21 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+# ── Deployment configuration ──────────────────────────────────────────────────
+# Update these three values when forking for your own club.
+#
+# PAGES_REPO   GitHub repository to deploy to (must contain a PAT secret named
+#              PAGES_PAT with write access to that repo)
+# PAGES_DIR    Directory inside that repo where the built app will be written
+# VITE_BASE_URL  URL path where the app will be served (must start with /)
+# ──────────────────────────────────────────────────────────────────────────────
+env:
+  PAGES_REPO: ginn5j/ginn5j.github.io
+  PAGES_DIR: assets/album-club
+  VITE_BASE_URL: /assets/album-club
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,18 +34,25 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_BASE_URL: /web.album.club
+          VITE_BASE_URL: ${{ env.VITE_BASE_URL }}
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Checkout pages repo
+        uses: actions/checkout@v4
         with:
-          path: dist
+          repository: ${{ env.PAGES_REPO }}
+          token: ${{ secrets.PAGES_PAT }}
+          path: pages-repo
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Copy built files
+        run: |
+          rm -rf pages-repo/${{ env.PAGES_DIR }}
+          cp -r dist pages-repo/${{ env.PAGES_DIR }}
+
+      - name: Commit and push
+        run: |
+          cd pages-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.PAGES_DIR }}
+          git diff --cached --quiet && echo "No changes" || git commit -m "Deploy album club app"
+          git push
