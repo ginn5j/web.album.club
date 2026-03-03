@@ -6,7 +6,7 @@ interface MergedViewProps {
 }
 
 export function MergedView({ discussion }: MergedViewProps) {
-  const { album, songs, members } = discussion
+  const { songs, members } = discussion
   const memberEntries = Object.entries(members)
 
   return (

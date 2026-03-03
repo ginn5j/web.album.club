@@ -50,10 +50,6 @@ export async function readFile(
       headers,
     })
 
-    if (response.status === 304) {
-      return cached!.result
-    }
-
     const data = response.data as { content: string; sha: string }
     const result: ReadResult = {
       content: decodeContent(data.content.replace(/\n/g, '')),

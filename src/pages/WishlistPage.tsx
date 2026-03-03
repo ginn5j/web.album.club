@@ -18,7 +18,7 @@ interface WishlistPageProps {
 }
 
 export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
-  const { items, loading, saving, error, addItem, removeItem } = useWishlist(
+  const { items, loading, error, addItem, removeItem } = useWishlist(
     settings,
     settings.myLogin,
   )
@@ -27,7 +27,7 @@ export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [promoteError, setPromoteError] = useState<string | null>(null)
 
-  function handleSelect(album: AlbumInfo, songs: Song[], source: 'musicbrainz' | 'manual') {
+  function handleSelect(album: AlbumInfo, _songs: Song[], source: 'musicbrainz' | 'manual') {
     const item: WishlistItem = {
       id: album.mbid ?? `${Date.now()}`,
       addedAt: new Date().toISOString(),
