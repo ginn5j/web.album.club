@@ -98,7 +98,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
         <input
           className="block w-full rounded-md border border-gray-300 pl-9 pr-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          placeholder="Search MusicBrainz..."
+          placeholder="Search MusicBrainz… (e.g. artist:Kraftwerk date:2009)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -128,6 +128,8 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
                   <div className="text-xs text-gray-500">
                     {r.artist}
                     {r.releaseYear ? ` · ${r.releaseYear}` : ''}
+                    {r.country ? ` · ${r.country}` : ''}
+                    {r.disambiguation ? ` · ${r.disambiguation}` : ''}
                   </div>
                 </div>
               </button>

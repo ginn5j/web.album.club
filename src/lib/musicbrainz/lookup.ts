@@ -30,18 +30,6 @@ interface MBRelease {
   media?: MBMedium[]
 }
 
-async function getCoverArtUrl(mbid: string): Promise<string | undefined> {
-  try {
-    const res = await fetch(`${COVER_ART_BASE}/release/${mbid}/front-250.jpg`, {
-      method: 'HEAD',
-    })
-    if (res.ok) return `${COVER_ART_BASE}/release/${mbid}/front-250.jpg`
-  } catch (_e) {
-    // no cover art available
-  }
-  return undefined
-}
-
 export async function lookupRelease(mbid: string): Promise<{
   album: AlbumInfo
   songs: Song[]
@@ -57,7 +45,7 @@ export async function lookupRelease(mbid: string): Promise<{
   const genres = data.genres ?? data['release-group']?.genres ?? []
   const genre = genres[0]?.name
 
-  const coverArtUrl = await getCoverArtUrl(mbid)
+  const coverArtUrl = `${COVER_ART_BASE}/release/${mbid}/front-500`
 
   const album: AlbumInfo = {
     title: data.title,

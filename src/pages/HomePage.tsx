@@ -72,6 +72,7 @@ export function HomePage({
                 src={currentAlbum.album.coverArtUrl}
                 alt={currentAlbum.album.title}
                 className="h-28 w-28 rounded-lg object-cover shrink-0"
+                onError={(e) => { e.currentTarget.hidden = true }}
               />
             ) : (
               <div className="h-28 w-28 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">

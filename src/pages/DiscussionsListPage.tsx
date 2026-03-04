@@ -75,6 +75,7 @@ export function DiscussionsListPage({ settings }: DiscussionsListPageProps) {
                   src={d.album.coverArtUrl}
                   alt={d.album.title}
                   className="h-14 w-14 rounded object-cover shrink-0"
+                  onError={(e) => { e.currentTarget.hidden = true }}
                 />
               )}
               <div className="flex-1 min-w-0">

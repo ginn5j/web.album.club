@@ -48,6 +48,7 @@ export function AlbumPage({ currentAlbum, settings, members }: AlbumPageProps) {
             src={currentAlbum.album.coverArtUrl}
             alt={currentAlbum.album.title}
             className="h-20 w-20 rounded-lg object-cover shrink-0"
+            onError={(e) => { e.currentTarget.hidden = true }}
           />
         ) : (
           <div className="h-20 w-20 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">

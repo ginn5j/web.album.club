@@ -6,8 +6,9 @@ interface MBRelease {
   id: string
   title: string
   date?: string
+  country?: string
+  disambiguation?: string
   'artist-credit'?: Array<{ name?: string; artist?: { name: string } }>
-  'release-group'?: { 'primary-type'?: string }
 }
 
 interface MBSearchResponse {
@@ -19,11 +20,15 @@ export interface SearchResult {
   title: string
   artist: string
   releaseYear?: number
+  country?: string
+  disambiguation?: string
   album: AlbumInfo
 }
 
 export async function searchReleases(query: string): Promise<SearchResult[]> {
-  const url = `${MUSICBRAINZ_API_BASE}/release?query=${encodeURIComponent(query)}&limit=10&fmt=json`
+  const url =
+    `${MUSICBRAINZ_API_BASE}/release` +
+    `?query=${encodeURIComponent(query)}&type=album&limit=10&fmt=json`
   const res = await mbFetch(url)
   if (!res.ok) throw new Error(`MusicBrainz search failed: ${res.status}`)
   const data: MBSearchResponse = await res.json()
@@ -38,6 +43,8 @@ export async function searchReleases(query: string): Promise<SearchResult[]> {
       title: r.title,
       artist,
       releaseYear,
+      country: r.country,
+      disambiguation: r.disambiguation,
       album: {
         title: r.title,
         artist,

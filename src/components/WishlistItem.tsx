@@ -17,6 +17,7 @@ export function WishlistItem({ item, onRemove, onPromote }: WishlistItemProps) {
           src={album.coverArtUrl}
           alt={album.title}
           className="h-14 w-14 rounded object-cover shrink-0"
+          onError={(e) => { e.currentTarget.hidden = true }}
         />
       )}
       <div className="flex-1 min-w-0">

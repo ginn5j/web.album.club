@@ -151,7 +151,7 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
       ) : (
         <div className="flex gap-3 items-center bg-gray-50 rounded-lg p-3">
           {album.coverArtUrl && (
-            <img src={album.coverArtUrl} alt={album.title} className="h-12 w-12 rounded object-cover shrink-0" />
+            <img src={album.coverArtUrl} alt={album.title} className="h-12 w-12 rounded object-cover shrink-0" onError={(e) => { e.currentTarget.hidden = true }} />
           )}
           <div>
             <div className="font-medium text-gray-900">{album.title}</div>

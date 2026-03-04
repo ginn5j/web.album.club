@@ -150,6 +150,7 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
             src={currentAlbum.album.coverArtUrl}
             alt={currentAlbum.album.title}
             className="h-16 w-16 rounded-lg object-cover shrink-0"
+            onError={(e) => { e.currentTarget.hidden = true }}
           />
         ) : (
           <div className="h-16 w-16 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
