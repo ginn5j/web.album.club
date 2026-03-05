@@ -78,7 +78,7 @@ describe('mergeDiscussion', () => {
   it('keys each member by login', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice' }, tags: aliceTags, notes: aliceNotes }],
+      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: aliceNotes }],
       '2024-06-15T20:00:00Z',
     )
     expect(Object.keys(result.members)).toContain('alice')
@@ -87,7 +87,7 @@ describe('mergeDiscussion', () => {
   it('maps member name, tags, and notes correctly', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice' }, tags: aliceTags, notes: aliceNotes }],
+      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: aliceNotes }],
       '2024-06-15T20:00:00Z',
     )
     expect(result.members['alice']).toEqual({
@@ -100,7 +100,7 @@ describe('mergeDiscussion', () => {
   it('falls back to empty tags object when tags is null', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice' }, tags: null, notes: aliceNotes }],
+      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: null, notes: aliceNotes }],
       '2024-06-15T20:00:00Z',
     )
     expect(result.members['alice'].tags).toEqual({})
@@ -109,7 +109,7 @@ describe('mergeDiscussion', () => {
   it('falls back to empty string when notes is null', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice' }, tags: aliceTags, notes: null }],
+      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: null }],
       '2024-06-15T20:00:00Z',
     )
     expect(result.members['alice'].notes).toBe('')
@@ -119,8 +119,8 @@ describe('mergeDiscussion', () => {
     const result = mergeDiscussion(
       baseAlbum,
       [
-        { member: { login: 'alice', name: 'Alice' }, tags: aliceTags, notes: aliceNotes },
-        { member: { login: 'bob', name: 'Bob' }, tags: bobTags, notes: null },
+        { member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: aliceNotes },
+        { member: { login: 'bob', name: 'Bob', branch: 'bob' }, tags: bobTags, notes: null },
       ],
       '2024-06-15T20:00:00Z',
     )
