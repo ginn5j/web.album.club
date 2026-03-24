@@ -51,5 +51,11 @@ export function useWishlist(settings: LocalSettings | null, branch: string | nul
     [items, save],
   )
 
-  return { items, loading, saving, error, addItem, removeItem }
+  const updateItem = useCallback(
+    (id: string, note: string) =>
+      save(items.map((i) => (i.id === id ? { ...i, note: note || undefined } : i))),
+    [items, save],
+  )
+
+  return { items, loading, saving, error, addItem, removeItem, updateItem }
 }

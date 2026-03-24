@@ -18,7 +18,7 @@ interface WishlistPageProps {
 }
 
 export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
-  const { items, loading, error, addItem, removeItem } = useWishlist(
+  const { items, loading, error, addItem, removeItem, updateItem } = useWishlist(
     settings,
     settings.myLogin,
   )
@@ -105,6 +105,7 @@ export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
                 item={item}
                 onRemove={removeItem}
                 onPromote={handlePromote}
+                onUpdateNote={updateItem}
               />
             </div>
           ))}

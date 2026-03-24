@@ -135,6 +135,7 @@ If you use a fine-grained org token (Option A) and want to publish discussions t
 
 ### Wishlist
 - Each member maintains a private list of albums to suggest for future discussion
+- Each wishlist item can have a personal note (e.g. why you want to listen to it)
 - Wishlist items can be promoted directly to the current album
 
 ### Jekyll publishing
