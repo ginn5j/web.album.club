@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ExternalLink, Save } from 'lucide-react'
 import { Input } from '../components/ui/Input'
@@ -31,6 +31,19 @@ export function SettingsPage({ onSave }: SettingsPageProps) {
   const [outputPostsPath, setOutputPostsPath] = useState('_posts/albums')
   const [outputBranch, setOutputBranch] = useState('main')
   const [publishPat, setPublishPat] = useState(settings.publishPat ?? '')
+
+  useEffect(() => {
+    if (!settings.pat || !settings.repoOwner || !settings.repoName || !settings.myLogin) return
+    readMemberSettings(settings.pat, settings.repoOwner, settings.repoName, settings.myLogin)
+      .then((ms) => {
+        if (!ms?.output) return
+        setOutputOwner(ms.output.owner)
+        setOutputRepo(ms.output.repo)
+        setOutputPostsPath(ms.output.postsPath)
+        setOutputBranch(ms.output.branch)
+      })
+      .catch(() => {})
+  }, [settings.pat, settings.repoOwner, settings.repoName, settings.myLogin])
   const [savingOutput, setSavingOutput] = useState(false)
   const [outputError, setOutputError] = useState<string | null>(null)
   const [outputSaved, setOutputSaved] = useState(false)
