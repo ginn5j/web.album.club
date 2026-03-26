@@ -6,9 +6,8 @@ import { PublishButton } from '../components/PublishButton'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
-import { readDiscussion, readMemberSettings } from '../lib/storage/discussion'
+import { readDiscussion } from '../lib/storage/discussion'
 import type { DiscussionData } from '../types/discussion'
-import type { MemberSettings } from '../types/member'
 import type { LocalSettings } from '../lib/settings'
 
 interface DiscussionViewPageProps {
@@ -19,7 +18,6 @@ export function DiscussionViewPage({ settings }: DiscussionViewPageProps) {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
   const [discussion, setDiscussion] = useState<DiscussionData | null>(null)
-  const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,12 +25,8 @@ export function DiscussionViewPage({ settings }: DiscussionViewPageProps) {
     if (!albumId) return
     async function load() {
       try {
-        const [d, ms] = await Promise.all([
-          readDiscussion(settings.pat, settings.repoOwner, settings.repoName, albumId!),
-          readMemberSettings(settings.pat, settings.repoOwner, settings.repoName, settings.myLogin),
-        ])
+        const d = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, albumId!)
         setDiscussion(d)
-        setMemberSettings(ms)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load discussion')
       } finally {
@@ -105,7 +99,6 @@ export function DiscussionViewPage({ settings }: DiscussionViewPageProps) {
       <div className="border-t border-gray-200 pt-4">
         <PublishButton
           discussion={discussion}
-          memberSettings={memberSettings}
           localSettings={settings}
         />
       </div>

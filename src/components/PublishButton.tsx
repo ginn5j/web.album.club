@@ -1,23 +1,35 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Upload, ExternalLink } from 'lucide-react'
 import { Button } from './ui/Button'
 import { generateJekyllPost, generateJekyllFilename } from '../lib/merge/jekyll'
 import { commitFileToRepo } from '../lib/github/files'
+import { readMemberSettings } from '../lib/storage/discussion'
 import type { DiscussionData } from '../types/discussion'
 import type { MemberSettings } from '../types/member'
 import type { LocalSettings } from '../lib/settings'
 
 interface PublishButtonProps {
   discussion: DiscussionData
-  memberSettings: MemberSettings | null
   localSettings: LocalSettings
 }
 
-export function PublishButton({ discussion, memberSettings, localSettings }: PublishButtonProps) {
+export function PublishButton({ discussion, localSettings }: PublishButtonProps) {
+  const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [publishDate, setPublishDate] = useState(() => new Date().toISOString())
+
+  useEffect(() => {
+    readMemberSettings(
+      localSettings.pat,
+      localSettings.repoOwner,
+      localSettings.repoName,
+      localSettings.myLogin,
+    )
+      .then((ms) => setMemberSettings(ms))
+      .catch(() => {})
+  }, [localSettings.pat, localSettings.repoOwner, localSettings.repoName, localSettings.myLogin])
 
   if (!memberSettings?.output) {
     return (
