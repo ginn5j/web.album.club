@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
-import { Disc3, Star, MessageSquare, ListMusic, BookOpen, Settings, Home } from 'lucide-react'
+import { Disc3, Star, MessageSquare, ListMusic, BookOpen, Settings, Home, Info } from 'lucide-react'
 import { ToastContainer, type ToastMessage } from './components/ui/Toast'
 import { ErrorBanner } from './components/ui/ErrorBanner'
 import { SettingsPage } from './pages/SettingsPage'
@@ -11,6 +11,7 @@ import { DiscussionPage } from './pages/DiscussionPage'
 import { DiscussionsListPage } from './pages/DiscussionsListPage'
 import { DiscussionEditPage } from './pages/DiscussionEditPage'
 import { DiscussionViewPage } from './pages/DiscussionViewPage'
+import { AboutPage } from './pages/AboutPage'
 import { loadLocalSettings, isSettingsComplete, type LocalSettings } from './lib/settings'
 import { useActiveAlbum } from './hooks/useActiveAlbum'
 import { readMembers } from './lib/storage/album'
@@ -124,8 +125,22 @@ export function App() {
               </Link>
             ))}
             <Link
+              to="/about"
+              className={`ml-1 flex items-center px-2 py-1 rounded-md transition-colors ${
+                location.pathname === '/about'
+                  ? 'text-indigo-600 bg-indigo-50'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Info className="h-4 w-4" />
+            </Link>
+            <Link
               to="/settings"
-              className="ml-1 flex items-center px-2 py-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              className={`flex items-center px-2 py-1 rounded-md transition-colors ${
+                location.pathname === '/settings'
+                  ? 'text-indigo-600 bg-indigo-50'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
             >
               <Settings className="h-4 w-4" />
             </Link>
@@ -190,6 +205,7 @@ export function App() {
             element={<DiscussionEditPage settings={settings} members={members} />}
           />
           <Route path="/settings" element={<SettingsPage onSave={refreshSettings} />} />
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
 
