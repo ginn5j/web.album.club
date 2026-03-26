@@ -17,9 +17,7 @@ export function PublishButton({ discussion, memberSettings, localSettings }: Pub
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [publishDate, setPublishDate] = useState(
-    () => new Date().toISOString().slice(0, 16), // "YYYY-MM-DDTHH:MM"
-  )
+  const [publishDate, setPublishDate] = useState(() => new Date().toISOString())
 
   if (!memberSettings?.output) {
     return (
@@ -36,9 +34,8 @@ export function PublishButton({ discussion, memberSettings, localSettings }: Pub
     setPublishing(true)
     setError(null)
     try {
-      const isoDate = publishDate + ':00Z'
-      const post = generateJekyllPost(discussion, isoDate, output.template)
-      const path = generateJekyllFilename(discussion, output.postsPath, isoDate)
+      const post = generateJekyllPost(discussion, publishDate, output.template)
+      const path = generateJekyllFilename(discussion, output.postsPath, publishDate)
       await commitFileToRepo(
         localSettings.publishPat ?? localSettings.pat,
         output.owner,
@@ -61,10 +58,11 @@ export function PublishButton({ discussion, memberSettings, localSettings }: Pub
       <div className="flex items-center gap-2">
         <label className="text-sm text-gray-600 whitespace-nowrap">Publish date</label>
         <input
-          type="datetime-local"
+          type="text"
           value={publishDate}
           onChange={(e) => setPublishDate(e.target.value)}
-          className="text-sm border border-gray-300 rounded px-2 py-1"
+          placeholder="YYYY-MM-DDTHH:MM:SSZ"
+          className="text-sm border border-gray-300 rounded px-2 py-1 font-mono w-56"
         />
       </div>
       <div className="flex items-center gap-3">
