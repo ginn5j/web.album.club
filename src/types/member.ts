@@ -15,5 +15,6 @@ export interface MemberSettings {
     repo: string
     postsPath: string
     branch: string
+    template?: string
   }
 }

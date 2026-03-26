@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ExternalLink, Save } from 'lucide-react'
+import { ExternalLink, Save, ChevronDown, ChevronRight } from 'lucide-react'
 import { Input } from '../components/ui/Input'
 import { Button } from '../components/ui/Button'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { useSettings } from '../hooks/useSettings'
 import { readFile } from '../lib/github/files'
 import { writeMemberSettings, readMemberSettings } from '../lib/storage/discussion'
+import { DEFAULT_TEMPLATE } from '../lib/merge/jekyll'
 import type { MemberSettings } from '../types/member'
 
 interface SettingsPageProps {
@@ -31,6 +32,8 @@ export function SettingsPage({ onSave }: SettingsPageProps) {
   const [outputPostsPath, setOutputPostsPath] = useState('_posts/albums')
   const [outputBranch, setOutputBranch] = useState('main')
   const [publishPat, setPublishPat] = useState(settings.publishPat ?? '')
+  const [outputTemplate, setOutputTemplate] = useState('')
+  const [showVarsRef, setShowVarsRef] = useState(false)
 
   useEffect(() => {
     if (!settings.pat || !settings.repoOwner || !settings.repoName || !settings.myLogin) return
@@ -41,6 +44,7 @@ export function SettingsPage({ onSave }: SettingsPageProps) {
         setOutputRepo(ms.output.repo)
         setOutputPostsPath(ms.output.postsPath)
         setOutputBranch(ms.output.branch)
+        setOutputTemplate(ms.output.template ?? '')
       })
       .catch(() => {})
   }, [settings.pat, settings.repoOwner, settings.repoName, settings.myLogin])
@@ -92,6 +96,7 @@ export function SettingsPage({ onSave }: SettingsPageProps) {
                 repo: outputRepo,
                 postsPath: outputPostsPath,
                 branch: outputBranch,
+                template: outputTemplate || undefined,
               },
             }
           : {}),
@@ -256,6 +261,71 @@ export function SettingsPage({ onSave }: SettingsPageProps) {
           placeholder="github_pat_... or ghp_..."
           hint="Only needed if your blog repo is personal and your club token is scoped to an org. Leave blank to reuse your club token (classic PAT users)."
         />
+        {/* Post template */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Post template</label>
+          <textarea
+            value={outputTemplate}
+            onChange={(e) => setOutputTemplate(e.target.value)}
+            rows={12}
+            placeholder="Leave blank to use the default template."
+            className="w-full font-mono text-xs border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setOutputTemplate(DEFAULT_TEMPLATE)}>
+              Load default template
+            </Button>
+            <Button variant="secondary" onClick={() => setOutputTemplate('')}>
+              Clear
+            </Button>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowVarsRef((v) => !v)}
+              className="flex items-center gap-1 text-sm text-blue-600 hover:underline"
+            >
+              {showVarsRef ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              Available variables
+            </button>
+            {showVarsRef && (
+              <table className="mt-2 text-xs text-gray-700 border-collapse w-full">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="border border-gray-200 px-2 py-1 text-left font-mono">Variable</th>
+                    <th className="border border-gray-200 px-2 py-1 text-left">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ['{{album_title}}', 'Album title'],
+                    ['{{artist}}', 'Artist name'],
+                    ['{{title}}', '"Album Club: <title> - <artist>"'],
+                    ['{{date}}', 'Publish date (ISO timestamp)'],
+                    ['{{discussed_date}}', 'Discussion date (YYYY-MM-DD)'],
+                    ['{{release_year}}', 'Release year, or empty'],
+                    ['{{genre}}', 'Genre, or empty'],
+                    ['{{mbid}}', 'MusicBrainz ID, or empty'],
+                    ['{{cover_art}}', 'Cover art URL, or empty'],
+                    ['{{members_list}}', 'YAML array of member names'],
+                    ['{{picked_by}}', "Picker's display name"],
+                    ['{{permalink}}', 'Post permalink path'],
+                    ['{{song_table}}', 'Song ratings table (Markdown)'],
+                    ['{{notes}}', 'Member notes sections (Markdown)'],
+                    ['{{discussed_line}}', '"Discussed on <date>. Picked by <name>."'],
+                    ['{{tag_legend}}', 'Tag legend text'],
+                  ].map(([variable, description]) => (
+                    <tr key={variable}>
+                      <td className="border border-gray-200 px-2 py-1 font-mono whitespace-nowrap">{variable}</td>
+                      <td className="border border-gray-200 px-2 py-1">{description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
         {outputError && <ErrorBanner message={outputError} />}
         {outputSaved && <p className="text-sm text-green-600">Output settings saved.</p>}
         <Button
