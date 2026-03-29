@@ -13,6 +13,8 @@ interface AlbumSearchProps {
 
 export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   const [query, setQuery] = useState('')
+  const [filterCountry, setFilterCountry] = useState('')
+  const [filterYear, setFilterYear] = useState('')
   const [selectedMbid, setSelectedMbid] = useState<string | null>(null)
   const [lookingUp, setLookingUp] = useState(false)
   const [showManual, setShowManual] = useState(false)
@@ -24,7 +26,14 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   const [manualGenre, setManualGenre] = useState('')
   const [manualTracks, setManualTracks] = useState('')
 
-  const { results, loading } = useMusicBrainz(showManual ? '' : query)
+  const combinedQuery = [
+    query.trim(),
+    filterCountry.trim() ? `country:${filterCountry.trim().toUpperCase()}` : '',
+    filterYear.trim() ? `date:${filterYear.trim()}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const { results, loading } = useMusicBrainz(showManual ? '' : combinedQuery)
 
   async function handleSelect(mbid: string) {
     setSelectedMbid(mbid)
@@ -98,7 +107,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
         <input
           className="block w-full rounded-md border border-gray-300 pl-9 pr-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          placeholder="Search MusicBrainz… (e.g. artist:Kraftwerk date:2009)"
+          placeholder="Search MusicBrainz… (e.g. artist:Kraftwerk)"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -107,6 +116,23 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
             <Spinner size="sm" />
           </div>
         )}
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          className="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          placeholder="Country"
+          maxLength={2}
+          value={filterCountry}
+          onChange={(e) => setFilterCountry(e.target.value)}
+        />
+        <input
+          className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          placeholder="Year"
+          maxLength={4}
+          value={filterYear}
+          onChange={(e) => setFilterYear(e.target.value)}
+        />
       </div>
 
       {results.length > 0 && (

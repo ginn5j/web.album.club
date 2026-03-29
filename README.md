@@ -113,7 +113,7 @@ If you use a fine-grained org token (Option A) and want to publish discussions t
 ## Features
 
 ### Album picker
-- Search MusicBrainz by title/artist; track list and cover art are fetched automatically
+- Search MusicBrainz by title/artist with optional country and year filters; track list and cover art are fetched automatically
 - Manual entry for albums not in MusicBrainz
 - Any member can pick the current album at any time; other members see a notification within 30 seconds
 

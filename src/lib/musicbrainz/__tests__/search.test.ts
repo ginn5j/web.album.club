@@ -146,6 +146,17 @@ describe('searchReleases', () => {
     expect(results[1].mbid).toBe('b')
   })
 
+  it('sorts results by release year ascending, undated releases last', async () => {
+    const releases = [
+      { id: 'c', title: 'Newest', date: '2010', 'artist-credit': [{ name: 'A', artist: { name: 'A' } }] },
+      { id: 'd', title: 'Undated', 'artist-credit': [{ name: 'A', artist: { name: 'A' } }] },
+      { id: 'e', title: 'Oldest', date: '1970', 'artist-credit': [{ name: 'A', artist: { name: 'A' } }] },
+    ]
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases }))
+    const results = await searchReleases('A')
+    expect(results.map((r) => r.mbid)).toEqual(['e', 'c', 'd'])
+  })
+
   it('throws when the response is not OK', async () => {
     mockMbFetch.mockResolvedValueOnce(makeErrorResponse(503))
     await expect(searchReleases('query')).rejects.toThrow('503')
