@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Search, Music } from 'lucide-react'
 import { useMusicBrainz } from '../hooks/useMusicBrainz'
 import { lookupRelease } from '../lib/musicbrainz/lookup'
+import { COVER_ART_BASE } from '../constants/config'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Spinner } from './ui/Spinner'
@@ -16,6 +17,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   const [filterCountry, setFilterCountry] = useState('')
   const [filterYear, setFilterYear] = useState('')
   const [selectedMbid, setSelectedMbid] = useState<string | null>(null)
+  const [brokenArt, setBrokenArt] = useState<Set<string>>(new Set())
   const [lookingUp, setLookingUp] = useState(false)
   const [showManual, setShowManual] = useState(false)
 
@@ -42,6 +44,8 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
       const { album, songs } = await lookupRelease(mbid)
       onSelect(album, songs, 'musicbrainz')
       setQuery('')
+      setFilterCountry('')
+      setFilterYear('')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to load album details')
     } finally {
@@ -145,15 +149,27 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
                 onClick={() => handleSelect(r.mbid)}
               >
                 {lookingUp && selectedMbid === r.mbid ? (
-                  <Spinner size="sm" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+                    <Spinner size="sm" />
+                  </div>
+                ) : brokenArt.has(r.mbid) ? (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-gray-100">
+                    <Music className="h-5 w-5 text-gray-400" />
+                  </div>
                 ) : (
-                  <Music className="h-4 w-4 shrink-0 text-gray-400" />
+                  <img
+                    src={`${COVER_ART_BASE}/release/${r.mbid}/front-250`}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded object-cover"
+                    onError={() => setBrokenArt((prev) => new Set(prev).add(r.mbid))}
+                  />
                 )}
                 <div>
                   <div className="text-sm font-medium text-gray-900">{r.title}</div>
                   <div className="text-xs text-gray-500">
                     {r.artist}
                     {r.releaseYear ? ` · ${r.releaseYear}` : ''}
+                    {r.format ? ` · ${r.format}` : ''}
                     {r.country ? ` · ${r.country}` : ''}
                     {r.disambiguation ? ` · ${r.disambiguation}` : ''}
                   </div>

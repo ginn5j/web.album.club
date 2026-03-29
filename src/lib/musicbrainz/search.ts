@@ -9,6 +9,7 @@ interface MBRelease {
   country?: string
   disambiguation?: string
   'artist-credit'?: Array<{ name?: string; artist?: { name: string } }>
+  media?: Array<{ format?: string }>
 }
 
 interface MBSearchResponse {
@@ -20,6 +21,7 @@ export interface SearchResult {
   title: string
   artist: string
   releaseYear?: number
+  format?: string
   country?: string
   disambiguation?: string
   album: AlbumInfo
@@ -38,12 +40,14 @@ export async function searchReleases(query: string): Promise<SearchResult[]> {
       const artistCredit = r['artist-credit']
       const artist = artistCredit?.[0]?.name ?? artistCredit?.[0]?.artist?.name ?? 'Unknown Artist'
       const releaseYear = r.date ? parseInt(r.date.slice(0, 4), 10) : undefined
+      const format = r.media?.[0]?.format
 
       return {
         mbid: r.id,
         title: r.title,
         artist,
         releaseYear,
+        format,
         country: r.country,
         disambiguation: r.disambiguation,
         album: {

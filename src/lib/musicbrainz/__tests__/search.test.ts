@@ -146,6 +146,29 @@ describe('searchReleases', () => {
     expect(results[1].mbid).toBe('b')
   })
 
+  it('extracts format from media[0].format', async () => {
+    const release = {
+      id: 'mb-id-009',
+      title: 'Vinyl Album',
+      'artist-credit': [{ name: 'Band', artist: { name: 'Band' } }],
+      media: [{ format: 'Vinyl' }],
+    }
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases: [release] }))
+    const results = await searchReleases('Vinyl Album')
+    expect(results[0].format).toBe('Vinyl')
+  })
+
+  it('sets format to undefined when media is absent', async () => {
+    const release = {
+      id: 'mb-id-010',
+      title: 'No Media',
+      'artist-credit': [{ name: 'Band', artist: { name: 'Band' } }],
+    }
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases: [release] }))
+    const results = await searchReleases('No Media')
+    expect(results[0].format).toBeUndefined()
+  })
+
   it('sorts results by release year ascending, undated releases last', async () => {
     const releases = [
       { id: 'c', title: 'Newest', date: '2010', 'artist-credit': [{ name: 'A', artist: { name: 'A' } }] },
