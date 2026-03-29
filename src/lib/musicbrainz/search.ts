@@ -33,24 +33,31 @@ export async function searchReleases(query: string): Promise<SearchResult[]> {
   if (!res.ok) throw new Error(`MusicBrainz search failed: ${res.status}`)
   const data: MBSearchResponse = await res.json()
 
-  return (data.releases ?? []).map((r) => {
-    const artistCredit = r['artist-credit']
-    const artist = artistCredit?.[0]?.name ?? artistCredit?.[0]?.artist?.name ?? 'Unknown Artist'
-    const releaseYear = r.date ? parseInt(r.date.slice(0, 4), 10) : undefined
+  return (data.releases ?? [])
+    .map((r) => {
+      const artistCredit = r['artist-credit']
+      const artist = artistCredit?.[0]?.name ?? artistCredit?.[0]?.artist?.name ?? 'Unknown Artist'
+      const releaseYear = r.date ? parseInt(r.date.slice(0, 4), 10) : undefined
 
-    return {
-      mbid: r.id,
-      title: r.title,
-      artist,
-      releaseYear,
-      country: r.country,
-      disambiguation: r.disambiguation,
-      album: {
+      return {
+        mbid: r.id,
         title: r.title,
         artist,
         releaseYear,
-        mbid: r.id,
-      },
-    }
-  })
+        country: r.country,
+        disambiguation: r.disambiguation,
+        album: {
+          title: r.title,
+          artist,
+          releaseYear,
+          mbid: r.id,
+        },
+      }
+    })
+    .sort((a, b) => {
+      if (a.releaseYear === undefined && b.releaseYear === undefined) return 0
+      if (a.releaseYear === undefined) return 1
+      if (b.releaseYear === undefined) return -1
+      return a.releaseYear - b.releaseYear
+    })
 }
