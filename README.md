@@ -116,6 +116,7 @@ If you use a fine-grained org token (Option A) and want to publish discussions t
 - Search MusicBrainz by title/artist with optional country and year filters; track list and cover art are fetched automatically
 - Manual entry for albums not in MusicBrainz
 - Any member can pick the current album at any time; other members see a notification within 30 seconds
+- If the current album hasn't been discussed yet, a confirmation is required before picking a new one
 
 ### Tagging & notes
 - Each song can be tagged **Starter / Bench / Cut** (or left untagged)
@@ -136,7 +137,7 @@ If you use a fine-grained org token (Option A) and want to publish discussions t
 ### Wishlist
 - Each member maintains a private list of albums to suggest for future discussion
 - Each wishlist item can have a personal note (e.g. why you want to listen to it)
-- Wishlist items can be promoted directly to the current album
+- Wishlist items can be promoted directly to the current album; a confirmation is required if the current album hasn't been discussed yet
 
 ### Jekyll publishing
 - Generates a Jekyll-compatible Markdown post from any discussion entry

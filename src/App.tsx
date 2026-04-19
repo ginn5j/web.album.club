@@ -186,7 +186,7 @@ export function App() {
           />
           <Route
             path="/wishlist"
-            element={<WishlistPage settings={settings} onAlbumPicked={handleAlbumPicked} />}
+            element={<WishlistPage settings={settings} currentAlbum={currentAlbum} onAlbumPicked={handleAlbumPicked} />}
           />
           <Route
             path="/discussions"

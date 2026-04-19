@@ -6,6 +6,7 @@ import { AlbumSearch } from '../components/AlbumSearch'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { writeCurrentAlbum } from '../lib/storage/album'
+import { readDiscussion } from '../lib/storage/discussion'
 import { buildCurrentAlbum } from '../lib/musicbrainz/lookup'
 import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
 import type { LocalSettings } from '../lib/settings'
@@ -29,6 +30,24 @@ export function HomePage({
   const [picking, setPicking] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [confirmingPick, setConfirmingPick] = useState(false)
+  const [checkingDiscussion, setCheckingDiscussion] = useState(false)
+
+  async function handlePickDifferent() {
+    setCheckingDiscussion(true)
+    try {
+      const discussion = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, currentAlbum!.id)
+      if (discussion) {
+        setPicking(true)
+      } else {
+        setConfirmingPick(true)
+      }
+    } catch {
+      setPicking(true)
+    } finally {
+      setCheckingDiscussion(false)
+    }
+  }
 
   async function handleAlbumSelected(album: AlbumInfo, songs: Song[], source: 'musicbrainz' | 'manual') {
     setSaving(true)
@@ -127,9 +146,25 @@ export function HomePage({
           </div>
 
           <div className="border-t border-gray-200 pt-4">
-            <Button variant="secondary" size="sm" onClick={() => setPicking(true)}>
-              Pick a different album
-            </Button>
+            {confirmingPick ? (
+              <div className="space-y-3">
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <strong>{currentAlbum.album.title}</strong> by {currentAlbum.album.artist} hasn't been discussed yet. Are you sure you want to pick a new album?
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => { setConfirmingPick(false); setPicking(true) }}>
+                    Yes, pick a new album
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setConfirmingPick(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={handlePickDifferent} disabled={checkingDiscussion}>
+                {checkingDiscussion ? 'Checking...' : 'Pick a different album'}
+              </Button>
+            )}
           </div>
         </div>
       ) : (

@@ -7,17 +7,19 @@ import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { Spinner } from '../components/ui/Spinner'
 import { useWishlist } from '../hooks/useWishlist'
 import { writeCurrentAlbum } from '../lib/storage/album'
+import { readDiscussion } from '../lib/storage/discussion'
 import { buildCurrentAlbum, lookupRelease } from '../lib/musicbrainz/lookup'
-import type { AlbumInfo, Song } from '../types/album'
+import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
 import type { WishlistItem } from '../types/wishlist'
 import type { LocalSettings } from '../lib/settings'
 
 interface WishlistPageProps {
   settings: LocalSettings
+  currentAlbum?: CurrentAlbum | null
   onAlbumPicked?: () => void
 }
 
-export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
+export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: WishlistPageProps) {
   const { items, loading, error, addItem, removeItem, updateItem } = useWishlist(
     settings,
     settings.myLogin,
@@ -26,6 +28,8 @@ export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
   const [adding, setAdding] = useState(false)
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [promoteError, setPromoteError] = useState<string | null>(null)
+  const [confirmingPromote, setConfirmingPromote] = useState<WishlistItem | null>(null)
+  const [checkingId, setCheckingId] = useState<string | null>(null)
 
   function handleSelect(album: AlbumInfo, _songs: Song[], source: 'musicbrainz' | 'manual') {
     const item: WishlistItem = {
@@ -39,6 +43,24 @@ export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
   }
 
   async function handlePromote(item: WishlistItem) {
+    if (currentAlbum) {
+      setCheckingId(item.id)
+      try {
+        const discussion = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, currentAlbum.id)
+        if (!discussion) {
+          setConfirmingPromote(item)
+          return
+        }
+      } catch {
+        // proceed
+      } finally {
+        setCheckingId(null)
+      }
+    }
+    await doPromote(item)
+  }
+
+  async function doPromote(item: WishlistItem) {
     setPromotingId(item.id)
     setPromoteError(null)
     try {
@@ -72,6 +94,22 @@ export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
       {error && <ErrorBanner message={error} />}
       {promoteError && <ErrorBanner message={promoteError} />}
 
+      {confirmingPromote && currentAlbum && (
+        <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-sm text-amber-700">
+            <strong>{currentAlbum.album.title}</strong> by {currentAlbum.album.artist} hasn't been discussed yet. Are you sure you want to pick <strong>{confirmingPromote.album.title}</strong> instead?
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => { const item = confirmingPromote; setConfirmingPromote(null); doPromote(item) }}>
+              Yes, pick it
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingPromote(null)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {adding && (
         <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
           <h3 className="font-semibold text-gray-900">Add to Wishlist</h3>
@@ -96,7 +134,7 @@ export function WishlistPage({ settings, onAlbumPicked }: WishlistPageProps) {
         <div className="space-y-3">
           {items.map((item) => (
             <div key={item.id} className="relative">
-              {promotingId === item.id && (
+              {(promotingId === item.id || checkingId === item.id) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-lg z-10">
                   <Spinner />
                 </div>
