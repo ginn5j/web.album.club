@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, ArrowUpCircle, Pencil, Check, X } from 'lucide-react'
+import { Trash2, ArrowUpCircle, Pencil, Check, X, GripVertical, ChevronUp, ChevronDown } from 'lucide-react'
 import type { WishlistItem as WishlistItemType } from '../types/wishlist'
 import { Button } from './ui/Button'
 
@@ -8,9 +8,13 @@ interface WishlistItemProps {
   onRemove: (id: string) => void
   onPromote: (item: WishlistItemType) => void
   onUpdateNote: (id: string, note: string) => void
+  onDragHandleMouseDown?: React.MouseEventHandler
+  isDragging?: boolean
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }
 
-export function WishlistItem({ item, onRemove, onPromote, onUpdateNote }: WishlistItemProps) {
+export function WishlistItem({ item, onRemove, onPromote, onUpdateNote, onDragHandleMouseDown, isDragging, onMoveUp, onMoveDown }: WishlistItemProps) {
   const { album } = item
   const [editing, setEditing] = useState(false)
   const [noteText, setNoteText] = useState(item.note ?? '')
@@ -26,8 +30,12 @@ export function WishlistItem({ item, onRemove, onPromote, onUpdateNote }: Wishli
   }
 
   return (
-    <div className="p-4 bg-white rounded-lg border border-gray-200">
+    <div className={`p-4 bg-white rounded-lg border border-gray-200${isDragging ? ' opacity-50' : ''}`}>
       <div className="flex items-center gap-4">
+        <GripVertical
+          className="h-5 w-5 text-gray-300 cursor-grab shrink-0 touch-none"
+          onMouseDown={onDragHandleMouseDown}
+        />
         {album.coverArtUrl && (
           <img
             src={album.coverArtUrl}
@@ -47,6 +55,26 @@ export function WishlistItem({ item, onRemove, onPromote, onUpdateNote }: Wishli
           )}
         </div>
         <div className="flex gap-2 shrink-0">
+          <div className="flex flex-col">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onMoveUp}
+              disabled={!onMoveUp}
+              title="Move up"
+            >
+              <ChevronUp className="h-4 w-4 text-gray-400" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onMoveDown}
+              disabled={!onMoveDown}
+              title="Move down"
+            >
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </Button>
+          </div>
           <Button
             size="sm"
             variant="ghost"

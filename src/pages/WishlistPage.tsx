@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Plus, ListMusic } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { AlbumSearch } from '../components/AlbumSearch'
@@ -20,12 +20,15 @@ interface WishlistPageProps {
 }
 
 export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: WishlistPageProps) {
-  const { items, loading, error, addItem, removeItem, updateItem } = useWishlist(
+  const { items, loading, error, addItem, removeItem, updateItem, reorderItems } = useWishlist(
     settings,
     settings.myLogin,
   )
 
   const [adding, setAdding] = useState(false)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [overIndex, setOverIndex] = useState<number | null>(null)
+  const dragEnabled = useRef(false)
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [promoteError, setPromoteError] = useState<string | null>(null)
   const [confirmingPromote, setConfirmingPromote] = useState<WishlistItem | null>(null)
@@ -132,8 +135,27 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map((item) => (
-            <div key={item.id} className="relative">
+          {items.map((item, idx) => (
+            <div
+              key={item.id}
+              className={`relative${overIndex === idx && dragIndex !== idx ? ' ring-2 ring-indigo-400 rounded-lg' : ''}`}
+              draggable
+              onDragStart={(e) => {
+                if (!dragEnabled.current) { e.preventDefault(); return }
+                setDragIndex(idx)
+              }}
+              onDragOver={(e) => { e.preventDefault(); setOverIndex(idx) }}
+              onDrop={() => {
+                if (dragIndex !== null && dragIndex !== idx) reorderItems(dragIndex, idx)
+                setDragIndex(null)
+                setOverIndex(null)
+              }}
+              onDragEnd={() => {
+                dragEnabled.current = false
+                setDragIndex(null)
+                setOverIndex(null)
+              }}
+            >
               {(promotingId === item.id || checkingId === item.id) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/70 rounded-lg z-10">
                   <Spinner />
@@ -144,6 +166,10 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
                 onRemove={removeItem}
                 onPromote={handlePromote}
                 onUpdateNote={updateItem}
+                isDragging={dragIndex === idx}
+                onDragHandleMouseDown={() => { dragEnabled.current = true }}
+                onMoveUp={idx > 0 ? () => reorderItems(idx, idx - 1) : undefined}
+                onMoveDown={idx < items.length - 1 ? () => reorderItems(idx, idx + 1) : undefined}
               />
             </div>
           ))}

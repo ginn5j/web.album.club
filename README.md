@@ -138,6 +138,7 @@ If you use a fine-grained org token (Option A) and want to publish discussions t
 - Each member maintains a private list of albums to suggest for future discussion
 - Each wishlist item can have a personal note (e.g. why you want to listen to it)
 - Wishlist items can be promoted directly to the current album; a confirmation is required if the current album hasn't been discussed yet
+- Wishlist items can be reordered by dragging the grip handle on the left of each card
 
 ### Jekyll publishing
 - Generates a Jekyll-compatible Markdown post from any discussion entry

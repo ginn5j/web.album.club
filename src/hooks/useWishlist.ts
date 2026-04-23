@@ -57,5 +57,15 @@ export function useWishlist(settings: LocalSettings | null, branch: string | nul
     [items, save],
   )
 
-  return { items, loading, saving, error, addItem, removeItem, updateItem }
+  const reorderItems = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const next = [...items]
+      const [moved] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, moved)
+      return save(next)
+    },
+    [items, save],
+  )
+
+  return { items, loading, saving, error, addItem, removeItem, updateItem, reorderItems }
 }
