@@ -32,10 +32,28 @@ export function WishlistItem({ item, onRemove, onPromote, onUpdateNote, onDragHa
   return (
     <div className={`p-4 bg-white rounded-lg border border-gray-200${isDragging ? ' opacity-50' : ''}`}>
       <div className="flex items-center gap-4">
-        <GripVertical
-          className="h-5 w-5 text-gray-300 cursor-grab shrink-0 touch-none"
-          onMouseDown={onDragHandleMouseDown}
-        />
+        <div className="flex flex-col items-center gap-0.5 shrink-0">
+          <button
+            onClick={onMoveUp}
+            disabled={!onMoveUp}
+            title="Move up"
+            className="rounded p-0.5 text-gray-300 hover:text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+          </button>
+          <GripVertical
+            className="h-5 w-5 text-gray-300 cursor-grab touch-none"
+            onMouseDown={onDragHandleMouseDown}
+          />
+          <button
+            onClick={onMoveDown}
+            disabled={!onMoveDown}
+            title="Move down"
+            className="rounded p-0.5 text-gray-300 hover:text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
         {album.coverArtUrl && (
           <img
             src={album.coverArtUrl}
@@ -55,26 +73,6 @@ export function WishlistItem({ item, onRemove, onPromote, onUpdateNote, onDragHa
           )}
         </div>
         <div className="flex gap-2 shrink-0">
-          <div className="flex flex-col">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onMoveUp}
-              disabled={!onMoveUp}
-              title="Move up"
-            >
-              <ChevronUp className="h-4 w-4 text-gray-400" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onMoveDown}
-              disabled={!onMoveDown}
-              title="Move down"
-            >
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            </Button>
-          </div>
           <Button
             size="sm"
             variant="ghost"
