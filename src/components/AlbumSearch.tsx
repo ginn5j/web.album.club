@@ -16,6 +16,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   const [query, setQuery] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [filterYear, setFilterYear] = useState('')
+  const [filterFormat, setFilterFormat] = useState('')
   const [selectedMbid, setSelectedMbid] = useState<string | null>(null)
   const [brokenArt, setBrokenArt] = useState<Set<string>>(new Set())
   const [lookingUp, setLookingUp] = useState(false)
@@ -32,6 +33,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
     query.trim(),
     filterCountry.trim() ? `country:${filterCountry.trim().toUpperCase()}` : '',
     filterYear.trim() ? `date:${filterYear.trim()}` : '',
+    filterFormat ? `format:"${filterFormat}"` : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -137,6 +139,16 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
           value={filterYear}
           onChange={(e) => setFilterYear(e.target.value)}
         />
+        <select
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          value={filterFormat}
+          onChange={(e) => setFilterFormat(e.target.value)}
+        >
+          <option value="">Format</option>
+          <option value="Vinyl">Vinyl</option>
+          <option value="Compact Disc">Compact Disc</option>
+          <option value="Digital Media">Digital Media</option>
+        </select>
       </div>
 
       {results.length > 0 && (
