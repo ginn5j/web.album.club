@@ -76,6 +76,7 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
       }
       const current = buildCurrentAlbum(album, songs, settings.myLogin, item.source)
       await writeCurrentAlbum(settings.pat, settings.repoOwner, settings.repoName, current)
+      await removeItem(item.id)
       onAlbumPicked?.()
     } catch (e) {
       setPromoteError(e instanceof Error ? e.message : 'Failed to pick album')
