@@ -8,58 +8,38 @@ import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { Spinner } from '../components/ui/Spinner'
 import { useSongTags } from '../hooks/useSongTags'
 import { useNotes } from '../hooks/useNotes'
-import { useDiscussionState } from '../hooks/useDiscussionState'
-import { readTags } from '../lib/storage/tags'
-import { readNotes } from '../lib/storage/notes'
-import { writeReveal } from '../lib/storage/reveal'
-import { readDiscussion, writeDiscussion } from '../lib/storage/discussion'
+import { useRealtimeReveal } from '../hooks/useRealtimeReveal'
+import { backend } from '../lib/backends'
 import { mergeDiscussion } from '../lib/merge/merger'
+import { useAuth } from '../lib/auth/AuthContext'
 import type { CurrentAlbum } from '../types/album'
 import type { Member } from '../types/member'
 import type { DiscussionData } from '../types/discussion'
-import type { LocalSettings } from '../lib/settings'
 
 interface DiscussionPageProps {
   currentAlbum: CurrentAlbum | null
   members: Member[]
-  settings: LocalSettings
 }
 
-export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPageProps) {
-  // Use member.branch from members.json — must match where reveal.json is written
-  const myMember = members.find((m) => m.login === settings.myLogin)
-  const myBranch = myMember?.branch ?? settings.myLogin
+export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
+  const { member } = useAuth()
+  const userId = member?.userId ?? null
   const albumId = currentAlbum?.id ?? null
 
-  const { tags: myTags, setTag, saving: tagSaving, error: tagError } = useSongTags(
-    settings,
-    myBranch,
-    albumId,
-  )
-
-  const { notes: myNotes, onChange: onNotesChange, saving: notesSaving, saved: notesSaved, error: notesError } = useNotes(
-    settings,
-    myBranch,
-    albumId,
-  )
-
-  const discussionState = useDiscussionState(settings, members, albumId)
+  const { tags: myTags, setTag, saving: tagSaving, error: tagError } = useSongTags(userId, albumId)
+  const { notes: myNotes, onChange: onNotesChange, saving: notesSaving, saved: notesSaved, error: notesError } = useNotes(userId, albumId)
+  const revealState = useRealtimeReveal(albumId)
 
   const [revealing, setRevealing] = useState(false)
   const [revealError, setRevealError] = useState<string | null>(null)
   const [discussion, setDiscussion] = useState<DiscussionData | null>(null)
   const [loadingDiscussion, setLoadingDiscussion] = useState(false)
 
-  // Keep a ref to the latest members so the reveal effect doesn't need members in its deps
-  // (members arrives asynchronously and we don't want it to re-trigger the reveal load)
   const membersRef = useRef(members)
   membersRef.current = members
 
-  // Track which albumId we've already loaded the post-reveal discussion for,
-  // so a late-arriving members update doesn't trigger a second load.
   const revealLoadedForRef = useRef<string | null>(null)
 
-  // Reset local discussion state when the album changes
   useEffect(() => {
     setDiscussion(null)
     setLoadingDiscussion(false)
@@ -67,9 +47,8 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
     revealLoadedForRef.current = null
   }, [albumId])
 
-  // When revealed, load (or create) the merged discussion — runs once per albumId
   useEffect(() => {
-    if (!discussionState.revealed || !currentAlbum || !albumId) return
+    if (!revealState.revealed || !currentAlbum || !albumId) return
     if (revealLoadedForRef.current === albumId) return
     revealLoadedForRef.current = albumId
     setLoadingDiscussion(true)
@@ -77,12 +56,11 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
     async function loadOrCreateDiscussion() {
       if (!currentAlbum || !albumId) return
       try {
-        // Read fresh tags and notes from all member branches
         const memberData = await Promise.all(
           membersRef.current.map(async (m) => {
             const [tags, notes] = await Promise.all([
-              readTags(settings.pat, settings.repoOwner, settings.repoName, m.branch, albumId).catch(() => null),
-              readNotes(settings.pat, settings.repoOwner, settings.repoName, m.branch, albumId).catch(() => null),
+              backend.storage.getTags(m.userId, albumId).catch(() => null),
+              backend.storage.getNotes(m.userId, albumId).catch(() => null),
             ])
             return { member: m, tags, notes }
           }),
@@ -91,38 +69,31 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
         const merged = mergeDiscussion(
           currentAlbum,
           memberData,
-          discussionState.revealedAt ?? new Date().toISOString(),
+          revealState.revealedAt ?? new Date().toISOString(),
         )
-        await writeDiscussion(settings.pat, settings.repoOwner, settings.repoName, merged)
+        await backend.storage.upsertDiscussion(merged)
         setDiscussion(merged)
-      } catch (e) {
-        // Write may fail if another client already wrote it; fall back to existing
+      } catch {
         try {
-          const existing = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, albumId)
-          if (existing) {
-            setDiscussion(existing)
-            return
-          }
+          const existing = await backend.storage.getDiscussion(albumId)
+          if (existing) { setDiscussion(existing); return }
         } catch { /* ignore */ }
-        setRevealError(e instanceof Error ? e.message : 'Failed to merge discussion')
+        setRevealError('Failed to merge discussion')
       } finally {
         setLoadingDiscussion(false)
       }
     }
 
     loadOrCreateDiscussion()
-  }, [discussionState.revealed, discussionState.revealedAt, currentAlbum, albumId, settings])
+  }, [revealState.revealed, revealState.revealedAt, currentAlbum, albumId])
 
   async function handleReveal() {
-    if (!albumId || !currentAlbum) return
+    if (!albumId || !userId) return
     setRevealing(true)
     setRevealError(null)
     try {
-      const revealedAt = new Date().toISOString()
-      await writeReveal(settings.pat, settings.repoOwner, settings.repoName, myBranch, albumId)
-      // Skip the read-back — immediately transition this client to revealed so
-      // the revealing user sees the merge without waiting for API propagation
-      discussionState.markRevealed(settings.myLogin, revealedAt)
+      const { revealedAt } = await backend.storage.createReveal(userId, albumId)
+      revealState.markRevealed(userId, revealedAt)
     } catch (e) {
       setRevealError(e instanceof Error ? e.message : 'Reveal failed')
     } finally {
@@ -139,7 +110,7 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
     )
   }
 
-  const otherMembers = members.filter((m) => m.login !== settings.myLogin)
+  const otherMembers = members.filter((m) => m.userId !== userId)
 
   return (
     <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
@@ -166,12 +137,9 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
       {tagError && <ErrorBanner message={tagError} />}
       {notesError && <ErrorBanner message={notesError} />}
       {revealError && <ErrorBanner message={revealError} />}
-      {discussionState.checkError && (
-        <ErrorBanner message={`Reveal check failed: ${discussionState.checkError}`} />
-      )}
+      {revealState.error && <ErrorBanner message={`Reveal check failed: ${revealState.error}`} />}
 
-      {discussionState.revealed ? (
-        /* Phase 2: Revealed */
+      {revealState.revealed ? (
         loadingDiscussion ? (
           <div className="flex items-center justify-center py-10">
             <Spinner />
@@ -185,14 +153,12 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
           </div>
         ) : null
       ) : (
-        /* Phase 1: Discuss */
         <div className="space-y-6">
           <div className="rounded-md bg-indigo-50 border border-indigo-200 p-3 text-sm text-indigo-800">
             Discuss the album with your club members, then click <strong>Reveal</strong> when ready.
             Others' choices are hidden until revealed.
           </div>
 
-          {/* My tags */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Tags</h3>
             <div className="bg-white rounded-lg border border-gray-200 px-4 py-2">
@@ -208,7 +174,6 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
             </div>
           </div>
 
-          {/* My notes */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Notes</h3>
             <NotesEditor
@@ -219,14 +184,13 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
             />
           </div>
 
-          {/* Other members (hidden) */}
           {otherMembers.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Other Members</h3>
               <div className="space-y-3">
                 {otherMembers.map((m) => (
-                  <div key={m.login} className="bg-gray-50 rounded-lg border border-gray-200 px-4 py-3">
-                    <div className="text-sm font-medium text-gray-700 mb-2">{m.name}</div>
+                  <div key={m.userId} className="bg-gray-50 rounded-lg border border-gray-200 px-4 py-3">
+                    <div className="text-sm font-medium text-gray-700 mb-2">{m.displayName}</div>
                     <div className="bg-white rounded-lg border border-gray-200 px-4 py-2">
                       {currentAlbum.songs.map((song) => (
                         <SongRow
@@ -245,7 +209,6 @@ export function DiscussionPage({ currentAlbum, members, settings }: DiscussionPa
             </div>
           )}
 
-          {/* Reveal button */}
           <div className="border-t border-gray-200 pt-4">
             <Button onClick={handleReveal} disabled={revealing} size="lg" className="w-full sm:w-auto">
               <Eye className="h-5 w-5" />

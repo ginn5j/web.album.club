@@ -1,23 +1,23 @@
 import type { CurrentAlbum } from '../../types/album'
 import type { Member } from '../../types/member'
-import type { DiscussionData, MemberDiscussionData, TagsFile, NotesFile } from '../../types/discussion'
+import type { DiscussionData, MemberDiscussionData, TagValue } from '../../types/discussion'
 
 export function mergeDiscussion(
   currentAlbum: CurrentAlbum,
   memberData: Array<{
     member: Member
-    tags: TagsFile | null
-    notes: NotesFile | null
+    tags: Record<string, TagValue> | null
+    notes: string | null
   }>,
   discussedAt: string,
 ): DiscussionData {
   const members: Record<string, MemberDiscussionData> = {}
 
   for (const { member, tags, notes } of memberData) {
-    members[member.login] = {
-      name: member.name,
-      tags: tags?.tags ?? {},
-      notes: notes?.notes ?? '',
+    members[member.displayName] = {
+      name: member.displayName,
+      tags: tags ?? {},
+      notes: notes ?? '',
     }
   }
 

@@ -5,28 +5,21 @@ import { Button } from '../components/ui/Button'
 import { AlbumSearch } from '../components/AlbumSearch'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
-import { writeCurrentAlbum } from '../lib/storage/album'
-import { readDiscussion } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
+import { useAuth } from '../lib/auth/AuthContext'
 import { buildCurrentAlbum } from '../lib/musicbrainz/lookup'
 import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
-import type { LocalSettings } from '../lib/settings'
 
 interface HomePageProps {
   currentAlbum: CurrentAlbum | null
   loading: boolean
   albumError: string | null
-  settings: LocalSettings
   onAlbumPicked: (album: CurrentAlbum) => void
 }
 
-export function HomePage({
-  currentAlbum,
-  loading,
-  albumError,
-  settings,
-  onAlbumPicked,
-}: HomePageProps) {
+export function HomePage({ currentAlbum, loading, albumError, onAlbumPicked }: HomePageProps) {
   const navigate = useNavigate()
+  const { member } = useAuth()
   const [picking, setPicking] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -36,7 +29,7 @@ export function HomePage({
   async function handlePickDifferent() {
     setCheckingDiscussion(true)
     try {
-      const discussion = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, currentAlbum!.id)
+      const discussion = await backend.storage.getDiscussion(currentAlbum!.id)
       if (discussion) {
         setPicking(true)
       } else {
@@ -50,11 +43,12 @@ export function HomePage({
   }
 
   async function handleAlbumSelected(album: AlbumInfo, songs: Song[], source: 'musicbrainz' | 'manual') {
+    if (!member) return
     setSaving(true)
     setSaveError(null)
     try {
-      const current = buildCurrentAlbum(album, songs, settings.myLogin, source)
-      await writeCurrentAlbum(settings.pat, settings.repoOwner, settings.repoName, current)
+      const current = buildCurrentAlbum(album, songs, member.displayName, source)
+      await backend.storage.setCurrentAlbum(current)
       onAlbumPicked(current)
       setPicking(false)
     } catch (e) {

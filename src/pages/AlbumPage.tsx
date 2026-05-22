@@ -4,29 +4,24 @@ import { NotesEditor } from '../components/NotesEditor'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { useSongTags } from '../hooks/useSongTags'
 import { useNotes } from '../hooks/useNotes'
+import { useAuth } from '../lib/auth/AuthContext'
 import type { CurrentAlbum } from '../types/album'
-import type { Member } from '../types/member'
-import type { LocalSettings } from '../lib/settings'
 
 interface AlbumPageProps {
   currentAlbum: CurrentAlbum | null
-  settings: LocalSettings
-  members: Member[]
 }
 
-export function AlbumPage({ currentAlbum, settings, members }: AlbumPageProps) {
-  const myMember = members.find((m) => m.login === settings.myLogin)
-  const myBranch = myMember?.branch ?? settings.myLogin
+export function AlbumPage({ currentAlbum }: AlbumPageProps) {
+  const { member } = useAuth()
+  const userId = member?.userId ?? null
 
   const { tags, setTag, saving: tagSaving, error: tagError } = useSongTags(
-    settings,
-    myBranch,
+    userId,
     currentAlbum?.id ?? null,
   )
 
   const { notes, onChange: onNotesChange, saving: notesSaving, saved: notesSaved, error: notesError } = useNotes(
-    settings,
-    myBranch,
+    userId,
     currentAlbum?.id ?? null,
   )
 

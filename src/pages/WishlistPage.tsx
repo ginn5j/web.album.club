@@ -6,24 +6,22 @@ import { WishlistItem as WishlistItemComponent } from '../components/WishlistIte
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { Spinner } from '../components/ui/Spinner'
 import { useWishlist } from '../hooks/useWishlist'
-import { writeCurrentAlbum } from '../lib/storage/album'
-import { readDiscussion } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
+import { useAuth } from '../lib/auth/AuthContext'
 import { buildCurrentAlbum, lookupRelease } from '../lib/musicbrainz/lookup'
 import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
 import type { WishlistItem } from '../types/wishlist'
-import type { LocalSettings } from '../lib/settings'
 
 interface WishlistPageProps {
-  settings: LocalSettings
   currentAlbum?: CurrentAlbum | null
   onAlbumPicked?: () => void
 }
 
-export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: WishlistPageProps) {
-  const { items, loading, error, addItem, removeItem, updateItem, reorderItems } = useWishlist(
-    settings,
-    settings.myLogin,
-  )
+export function WishlistPage({ currentAlbum, onAlbumPicked }: WishlistPageProps) {
+  const { member } = useAuth()
+  const userId = member?.userId ?? null
+
+  const { items, loading, error, addItem, removeItem, updateItem, reorderItems } = useWishlist(userId)
 
   const [adding, setAdding] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
@@ -49,7 +47,7 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
     if (currentAlbum) {
       setCheckingId(item.id)
       try {
-        const discussion = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, currentAlbum.id)
+        const discussion = await backend.storage.getDiscussion(currentAlbum.id)
         if (!discussion) {
           setConfirmingPromote(item)
           return
@@ -64,6 +62,7 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
   }
 
   async function doPromote(item: WishlistItem) {
+    if (!member) return
     setPromotingId(item.id)
     setPromoteError(null)
     try {
@@ -74,8 +73,8 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
         album = data.album
         songs = data.songs
       }
-      const current = buildCurrentAlbum(album, songs, settings.myLogin, item.source)
-      await writeCurrentAlbum(settings.pat, settings.repoOwner, settings.repoName, current)
+      const current = buildCurrentAlbum(album, songs, member.displayName, item.source)
+      await backend.storage.setCurrentAlbum(current)
       await removeItem(item.id)
       onAlbumPicked?.()
     } catch (e) {
