@@ -62,3 +62,16 @@ CREATE POLICY "wishlists_own" ON wishlists FOR ALL USING (user_id = auth.uid());
 
 -- member_settings: private, own row only
 CREATE POLICY "member_settings_own" ON member_settings FOR ALL USING (user_id = auth.uid());
+
+-- Grant table-level access to authenticated users.
+-- Required when "Automatically expose new tables" is disabled at project creation.
+-- RLS policies above still control which rows each user can read or write.
+GRANT SELECT, INSERT, UPDATE          ON members         TO authenticated;
+GRANT SELECT, INSERT, UPDATE          ON invites         TO authenticated;
+GRANT SELECT, INSERT, UPDATE          ON albums          TO authenticated;
+GRANT SELECT, INSERT, UPDATE          ON tags            TO authenticated;
+GRANT SELECT, INSERT, UPDATE          ON notes           TO authenticated;
+GRANT SELECT, INSERT                  ON reveals         TO authenticated;
+GRANT SELECT, INSERT, UPDATE          ON discussions     TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE  ON wishlists       TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE  ON member_settings TO authenticated;
