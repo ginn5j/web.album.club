@@ -16,8 +16,8 @@ CREATE FUNCTION is_member() RETURNS boolean LANGUAGE sql SECURITY DEFINER AS
 CREATE FUNCTION is_revealed(p_album_id text) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS
   $$ SELECT EXISTS (SELECT 1 FROM reveals WHERE album_id = p_album_id) $$;
 
--- members: all members can read; inserts happen via upsert during onboarding (own row only)
-CREATE POLICY "members_select" ON members FOR SELECT USING (is_member());
+-- members: own row always visible (so onboarding can detect new users); all members see all rows
+CREATE POLICY "members_select" ON members FOR SELECT USING (user_id = auth.uid() OR is_member());
 CREATE POLICY "members_insert" ON members FOR INSERT WITH CHECK (user_id = auth.uid());
 CREATE POLICY "members_update" ON members FOR UPDATE USING (user_id = auth.uid());
 

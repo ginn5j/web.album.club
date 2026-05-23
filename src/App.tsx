@@ -53,7 +53,7 @@ export function App() {
     [addToast],
   )
 
-  const { currentAlbum, loading: albumLoading, error: albumError, refresh } = useRealtimeAlbum(handleAlbumChanged)
+  const { currentAlbum, loading: albumLoading, error: albumError, refresh } = useRealtimeAlbum(handleAlbumChanged, !!member)
 
   const handleAlbumPicked = useCallback(() => {
     refresh()
@@ -61,7 +61,7 @@ export function App() {
   }, [refresh, navigate])
 
   useEffect(() => {
-    if (!session) return
+    if (!member) return
     backend.storage
       .getMembers()
       .then(setMembers)
