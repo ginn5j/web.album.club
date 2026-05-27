@@ -44,11 +44,12 @@ A small-group music listening club app — like a book club, but for albums. Mem
 
 ### 2. Apply the database schema
 
-Run the two migration files against your project (Dashboard → SQL Editor, or Supabase CLI):
+Run the migration files against your project (Dashboard → SQL Editor, or Supabase CLI):
 
 ```
 supabase/migrations/001_initial.sql   # Tables
-supabase/migrations/002_rls.sql       # Row-Level Security policies
+supabase/migrations/002_rls.sql       # Row-Level Security policies + grants
+supabase/migrations/003_realtime.sql  # Enable Realtime on albums + reveals
 ```
 
 ### 3. Enable authentication providers
@@ -275,7 +276,8 @@ src/
 supabase/
 ├── migrations/
 │   ├── 001_initial.sql  # All tables
-│   └── 002_rls.sql      # Row-Level Security policies + authenticated grants
+│   ├── 002_rls.sql      # Row-Level Security policies + authenticated grants
+│   └── 003_realtime.sql # Enable Realtime publication for albums + reveals
 └── scripts/
     ├── grant_migration.sql   # Run before /migrate — temporary service_role access
     └── revoke_migration.sql  # Run after /migrate — removes service_role access
