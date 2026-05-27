@@ -189,15 +189,16 @@ export function MigrationPage() {
                 const tagsData = await readGitHubJson<{ tags: Record<string, string> }>(`tags/${file.name}`, branch)
                 if (tagsData) {
                   if (writer) {
-                    await writer.from('tags').upsert(
+                    const { error } = await writer.from('tags').upsert(
                       { user_id: userId, album_id: albumId, tags: tagsData.tags, updated_at: new Date().toISOString() },
                       { onConflict: 'user_id,album_id' },
                     )
+                    if (error) throw error
                   } else {
                     await backend.storage.setTags(userId, albumId, tagsData.tags as Record<string, TagValue>)
                   }
                 }
-              } catch { /* skip individual file */ }
+              } catch (e) { log(prefix, 'error', `tags/${file.name}: ${e instanceof Error ? e.message : String(e)}`) }
             }
           } catch { /* tags dir may not exist on this branch */ }
 
@@ -215,15 +216,16 @@ export function MigrationPage() {
                 const notesData = await readGitHubJson<{ notes: string }>(`notes/${file.name}`, branch)
                 if (notesData) {
                   if (writer) {
-                    await writer.from('notes').upsert(
+                    const { error } = await writer.from('notes').upsert(
                       { user_id: userId, album_id: albumId, content: notesData.notes, updated_at: new Date().toISOString() },
                       { onConflict: 'user_id,album_id' },
                     )
+                    if (error) throw error
                   } else {
                     await backend.storage.setNotes(userId, albumId, notesData.notes)
                   }
                 }
-              } catch { /* skip individual file */ }
+              } catch (e) { log(prefix, 'error', `notes/${file.name}: ${e instanceof Error ? e.message : String(e)}`) }
             }
           } catch { /* notes dir may not exist on this branch */ }
 
@@ -232,15 +234,18 @@ export function MigrationPage() {
             const wishlist = await readGitHubJson<{ items: unknown[] }>('wishlist.json', branch)
             if (wishlist?.items) {
               if (writer) {
-                await writer.from('wishlists').upsert(
+                const { error } = await writer.from('wishlists').upsert(
                   { user_id: userId, items: wishlist.items, updated_at: new Date().toISOString() },
                   { onConflict: 'user_id' },
                 )
+                if (error) throw error
               } else {
                 await backend.storage.setWishlist(userId, wishlist.items as WishlistItem[])
               }
             }
-          } catch { /* wishlist.json may not exist */ }
+          } catch (e) {
+            log(prefix, 'error', `wishlist: ${e instanceof Error ? e.message : String(e)}`)
+          }
 
           // Member settings (blog output config)
           try {
@@ -249,7 +254,7 @@ export function MigrationPage() {
             }>('settings.json', branch)
             if (ms?.output) {
               if (writer) {
-                await writer.from('member_settings').upsert(
+                const { error } = await writer.from('member_settings').upsert(
                   {
                     user_id: userId,
                     output_owner: ms.output.owner,
@@ -261,11 +266,14 @@ export function MigrationPage() {
                   },
                   { onConflict: 'user_id' },
                 )
+                if (error) throw error
               } else {
                 await backend.storage.setMemberSettings(userId, { output: ms.output })
               }
             }
-          } catch { /* settings.json may not exist */ }
+          } catch (e) {
+            log(prefix, 'error', `settings: ${e instanceof Error ? e.message : String(e)}`)
+          }
 
           log(prefix, 'done')
         } catch (e) {
