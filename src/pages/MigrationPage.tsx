@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createClient } from '@supabase/supabase-js'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
@@ -6,8 +7,11 @@ import { backend } from '../lib/backends'
 import { useAuth } from '../lib/auth/AuthContext'
 import { readFile } from '../lib/github/files'
 import { MAIN_BRANCH } from '../constants/config'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CurrentAlbum } from '../types/album'
 import type { DiscussionData } from '../types/discussion'
+import type { TagValue } from '../types/discussion'
+import type { WishlistItem } from '../types/wishlist'
 
 interface MigrationStep {
   label: string
@@ -21,6 +25,7 @@ export function MigrationPage() {
   const [pat, setPat] = useState('')
   const [repoOwner, setRepoOwner] = useState('')
   const [repoName, setRepoName] = useState('')
+  const [serviceRoleKey, setServiceRoleKey] = useState('')
   const [running, setRunning] = useState(false)
   const [steps, setSteps] = useState<MigrationStep[]>([])
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -58,8 +63,24 @@ export function MigrationPage() {
     setGlobalError(null)
     setSteps([])
 
+    // Admin client bypasses RLS so we can write data on behalf of any member.
+    // The service role key is entered by the admin and sent only to their own
+    // Supabase project — it is not stored anywhere.
+    const adminClient: SupabaseClient | null = serviceRoleKey
+      ? createClient(
+          import.meta.env.VITE_SUPABASE_URL as string,
+          serviceRoleKey,
+          { auth: { persistSession: false, autoRefreshToken: false } },
+        )
+      : null
+
+    if (!adminClient) {
+      log('⚠ Service role key', 'error',
+        'Not provided — per-member data (tags, notes, wishlist) will be skipped for other members due to RLS')
+    }
+
     try {
-      // Step 1: Current album
+      // Step 1: Current album (written as the logged-in admin — albums RLS allows any member)
       log('Current album', 'running')
       try {
         const album = await readGitHubJson<CurrentAlbum>('current-album.json')
@@ -84,11 +105,9 @@ export function MigrationPage() {
         log('Members list', 'error', e instanceof Error ? e.message : String(e))
       }
 
-      // Step 3: Discussions
+      // Step 3: Discussions (written as the logged-in admin — discussions RLS allows any member)
       log('Discussions', 'running')
       try {
-        // List all discussion files by trying common IDs from members' data
-        // Since we can't list directory without Octokit, read known IDs from album if available
         const { getOctokit } = await import('../lib/github/client')
         const octokit = getOctokit(pat)
         const { data } = await octokit.rest.repos.getContent({
@@ -97,7 +116,9 @@ export function MigrationPage() {
           path: 'discussions',
           ref: MAIN_BRANCH,
         })
-        const files = Array.isArray(data) ? data.filter((f: { name: string }) => f.name.endsWith('.json')) : []
+        const files = Array.isArray(data)
+          ? data.filter((f: { name: string }) => f.name.endsWith('.json'))
+          : []
         let migrated = 0
         for (const file of files) {
           try {
@@ -106,7 +127,7 @@ export function MigrationPage() {
               await backend.storage.upsertDiscussion(discussion)
               migrated++
             }
-          } catch { /* skip */ }
+          } catch { /* skip individual file errors */ }
         }
         log('Discussions', 'done', `${migrated}/${files.length} migrated`)
       } catch (e) {
@@ -114,10 +135,12 @@ export function MigrationPage() {
       }
 
       // Step 4: Per-member private data
+      // Requires the service role key — the anon client can only write rows where
+      // user_id = auth.uid(), so writing another member's data is blocked by RLS.
       const supabaseMembers = await backend.storage.getMembers()
 
       for (const ghMember of githubMembers) {
-        // Match by name (display name) first, then fall back to login
+        // name = display name in Supabase; branch = Git branch for private data (may differ)
         const supabaseMember = supabaseMembers.find(
           (m) => m.displayName === ghMember.name || m.displayName === ghMember.login,
         )
@@ -126,69 +149,123 @@ export function MigrationPage() {
 
         if (!supabaseMember) {
           const available = supabaseMembers.map((m) => `"${m.displayName}"`).join(', ')
-          log(prefix, 'error',
+          log(
+            prefix,
+            'error',
             `No Supabase member matched name="${ghMember.name}" or login="${ghMember.login}". ` +
-            `Available display names: ${available || '(none)'}`)
+              `Available display names: ${available || '(none)'}`,
+          )
           continue
         }
 
-        // branch is the Git branch name for this member's private data — may differ from display name
-        const branch = ghMember.branch
-        log(prefix, 'running', `branch=${branch}`)
+        const branch = ghMember.branch  // Git branch for this member's private data
         const userId = supabaseMember.userId
+        const isSelf = userId === member.userId
+
+        // Without the service role key we can only write our own rows
+        if (!adminClient && !isSelf) {
+          log(prefix, 'error', `Skipped — service role key required to write data for other members (branch=${branch})`)
+          continue
+        }
+
+        const writer = adminClient ?? null  // null means use backend.storage (own data only)
+        log(prefix, 'running', `branch=${branch}`)
 
         try {
+          const { getOctokit } = await import('../lib/github/client')
+          const octokit = getOctokit(pat)
+
           // Tags
           try {
-            const { getOctokit } = await import('../lib/github/client')
-            const octokit = getOctokit(pat)
             const { data } = await octokit.rest.repos.getContent({
-              owner: repoOwner,
-              repo: repoName,
-              path: 'tags',
-              ref: branch,
+              owner: repoOwner, repo: repoName, path: 'tags', ref: branch,
             })
-            const tagFiles = Array.isArray(data) ? data.filter((f: { name: string }) => f.name.endsWith('.json')) : []
+            const tagFiles = Array.isArray(data)
+              ? data.filter((f: { name: string }) => f.name.endsWith('.json'))
+              : []
             for (const file of tagFiles) {
               try {
                 const albumId = file.name.replace(/\.json$/, '')
                 const tagsData = await readGitHubJson<{ tags: Record<string, string> }>(`tags/${file.name}`, branch)
-                if (tagsData) await backend.storage.setTags(userId, albumId, tagsData.tags as Record<string, 'Starter' | 'Bench' | 'Cut'>)
-              } catch { /* skip */ }
+                if (tagsData) {
+                  if (writer) {
+                    await writer.from('tags').upsert(
+                      { user_id: userId, album_id: albumId, tags: tagsData.tags, updated_at: new Date().toISOString() },
+                      { onConflict: 'user_id,album_id' },
+                    )
+                  } else {
+                    await backend.storage.setTags(userId, albumId, tagsData.tags as Record<string, TagValue>)
+                  }
+                }
+              } catch { /* skip individual file */ }
             }
-          } catch { /* tags dir may not exist */ }
+          } catch { /* tags dir may not exist on this branch */ }
 
           // Notes
           try {
-            const { getOctokit } = await import('../lib/github/client')
-            const octokit = getOctokit(pat)
             const { data } = await octokit.rest.repos.getContent({
-              owner: repoOwner,
-              repo: repoName,
-              path: 'notes',
-              ref: branch,
+              owner: repoOwner, repo: repoName, path: 'notes', ref: branch,
             })
-            const noteFiles = Array.isArray(data) ? data.filter((f: { name: string }) => f.name.endsWith('.json')) : []
+            const noteFiles = Array.isArray(data)
+              ? data.filter((f: { name: string }) => f.name.endsWith('.json'))
+              : []
             for (const file of noteFiles) {
               try {
                 const albumId = file.name.replace(/\.json$/, '')
                 const notesData = await readGitHubJson<{ notes: string }>(`notes/${file.name}`, branch)
-                if (notesData) await backend.storage.setNotes(userId, albumId, notesData.notes)
-              } catch { /* skip */ }
+                if (notesData) {
+                  if (writer) {
+                    await writer.from('notes').upsert(
+                      { user_id: userId, album_id: albumId, content: notesData.notes, updated_at: new Date().toISOString() },
+                      { onConflict: 'user_id,album_id' },
+                    )
+                  } else {
+                    await backend.storage.setNotes(userId, albumId, notesData.notes)
+                  }
+                }
+              } catch { /* skip individual file */ }
             }
-          } catch { /* notes dir may not exist */ }
+          } catch { /* notes dir may not exist on this branch */ }
 
           // Wishlist
           try {
             const wishlist = await readGitHubJson<{ items: unknown[] }>('wishlist.json', branch)
-            if (wishlist?.items) await backend.storage.setWishlist(userId, wishlist.items as Parameters<typeof backend.storage.setWishlist>[1])
-          } catch { /* skip */ }
+            if (wishlist?.items) {
+              if (writer) {
+                await writer.from('wishlists').upsert(
+                  { user_id: userId, items: wishlist.items, updated_at: new Date().toISOString() },
+                  { onConflict: 'user_id' },
+                )
+              } else {
+                await backend.storage.setWishlist(userId, wishlist.items as WishlistItem[])
+              }
+            }
+          } catch { /* wishlist.json may not exist */ }
 
-          // Member settings
+          // Member settings (blog output config)
           try {
-            const ms = await readGitHubJson<{ output?: { owner: string; repo: string; postsPath: string; branch: string; template?: string } }>('settings.json', branch)
-            if (ms?.output) await backend.storage.setMemberSettings(userId, { output: ms.output })
-          } catch { /* skip */ }
+            const ms = await readGitHubJson<{
+              output?: { owner: string; repo: string; postsPath: string; branch: string; template?: string }
+            }>('settings.json', branch)
+            if (ms?.output) {
+              if (writer) {
+                await writer.from('member_settings').upsert(
+                  {
+                    user_id: userId,
+                    output_owner: ms.output.owner,
+                    output_repo: ms.output.repo,
+                    output_posts_path: ms.output.postsPath,
+                    output_branch: ms.output.branch,
+                    output_template: ms.output.template ?? null,
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: 'user_id' },
+                )
+              } else {
+                await backend.storage.setMemberSettings(userId, { output: ms.output })
+              }
+            }
+          } catch { /* settings.json may not exist */ }
 
           log(prefix, 'done')
         } catch (e) {
@@ -215,7 +292,11 @@ export function MigrationPage() {
         <p className="font-semibold">Before running:</p>
         <ul className="list-disc list-inside space-y-0.5">
           <li>All club members must have signed in at least once so their Supabase accounts exist.</li>
-          <li>Each member's Supabase display name must match the <code>name</code> field (or <code>login</code>) in members.json. The <code>branch</code> field is used separately to read their private data.</li>
+          <li>
+            Each member's Supabase display name must match the <code>name</code> field in members.json.
+            The <code>branch</code> field is used separately to read their private data and may differ.
+          </li>
+          <li>The service role key is required to write private data for other members (bypasses RLS).</li>
           <li>Use a GitHub PAT with read access to the album-club repo and all member branches.</li>
         </ul>
       </div>
@@ -242,6 +323,13 @@ export function MigrationPage() {
           onChange={(e) => setRepoName(e.target.value)}
           placeholder="album-club"
         />
+        <Input
+          label="Supabase service role key (required for other members' private data)"
+          type="password"
+          value={serviceRoleKey}
+          onChange={(e) => setServiceRoleKey(e.target.value)}
+          placeholder="eyJ... (Project Settings → API → service_role key)"
+        />
         <Button
           onClick={run}
           disabled={running || !pat || !repoOwner || !repoName}
@@ -255,16 +343,21 @@ export function MigrationPage() {
         <div className="space-y-1">
           {steps.map((step) => (
             <div key={step.label} className="flex items-start gap-3 text-sm py-1 border-b border-gray-100">
-              <span className={`shrink-0 font-mono text-xs mt-0.5 ${
-                step.status === 'done' ? 'text-green-600' :
-                step.status === 'error' ? 'text-red-600' :
-                step.status === 'running' ? 'text-indigo-600' :
-                'text-gray-400'
-              }`}>
+              <span
+                className={`shrink-0 font-mono text-xs mt-0.5 ${
+                  step.status === 'done'
+                    ? 'text-green-600'
+                    : step.status === 'error'
+                      ? 'text-red-600'
+                      : step.status === 'running'
+                        ? 'text-indigo-600'
+                        : 'text-gray-400'
+                }`}
+              >
                 {step.status === 'done' ? '✓' : step.status === 'error' ? '✗' : step.status === 'running' ? '…' : '·'}
               </span>
               <span className="font-medium text-gray-800">{step.label}</span>
-              {step.detail && <span className="text-gray-500 ml-auto">{step.detail}</span>}
+              {step.detail && <span className="text-gray-500 ml-auto text-xs max-w-xs text-right">{step.detail}</span>}
             </div>
           ))}
         </div>
