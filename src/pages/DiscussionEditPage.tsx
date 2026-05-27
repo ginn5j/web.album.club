@@ -12,11 +12,7 @@ import type { Member } from '../types/member'
 
 const TAG_OPTIONS: TagValue[] = ['Starter', 'Bench', 'Cut']
 
-interface DiscussionEditPageProps {
-  members: Member[]
-}
-
-export function DiscussionEditPage({ members }: DiscussionEditPageProps) {
+export function DiscussionEditPage() {
   const { albumId } = useParams<{ albumId: string }>()
   const isNew = albumId === 'new' || !albumId
   const navigate = useNavigate()
@@ -25,11 +21,16 @@ export function DiscussionEditPage({ members }: DiscussionEditPageProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [members, setMembers] = useState<Member[]>([])
   const [album, setAlbum] = useState<AlbumInfo | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
   const [pickedBy, setPickedBy] = useState('')
   const [discussedAt, setDiscussedAt] = useState(new Date().toISOString().slice(0, 10))
   const [memberData, setMemberData] = useState<Record<string, MemberDiscussionData>>({})
+
+  useEffect(() => {
+    backend.storage.getMembers().then(setMembers).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!isNew) return
@@ -133,7 +134,7 @@ export function DiscussionEditPage({ members }: DiscussionEditPageProps) {
 
       {error && <ErrorBanner message={error} />}
 
-      {isNew || !album ? (
+      {!album ? (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-700">Album</h3>
           <AlbumSearch onSelect={handleAlbumSelected} />

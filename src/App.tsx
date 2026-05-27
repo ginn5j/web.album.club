@@ -177,9 +177,9 @@ export function App() {
             element={<WishlistPage onAlbumPicked={handleAlbumPicked} />}
           />
           <Route path="/discussions" element={<DiscussionsListPage />} />
-          <Route path="/discussions/new" element={<DiscussionEditPage members={members} />} />
+          <Route path="/discussions/new" element={<DiscussionEditPage />} />
           <Route path="/discussions/:albumId" element={<DiscussionViewPage />} />
-          <Route path="/discussions/:albumId/edit" element={<DiscussionEditPage members={members} />} />
+          <Route path="/discussions/:albumId/edit" element={<DiscussionEditPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/migrate" element={<MigrationPage />} />
