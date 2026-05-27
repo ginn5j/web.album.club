@@ -47,9 +47,10 @@ export function WishlistPage({ currentAlbum, onAlbumPicked }: WishlistPageProps)
   async function handlePromote(item: WishlistItem) {
     setCheckingId(item.id)
     try {
-      // Always fetch the current album fresh — the prop may not be loaded yet
-      // if the user navigated directly to the wishlist page.
-      const current = currentAlbum ?? await backend.storage.getCurrentAlbum()
+      // Always fetch the current album fresh from the backend.
+      // The currentAlbum prop can be stale (e.g. user picked a new album on
+      // the home page then navigated here before the React state updated).
+      const current = await backend.storage.getCurrentAlbum()
       if (current) {
         const discussion = await backend.storage.getDiscussion(current.id)
         if (!discussion) {
