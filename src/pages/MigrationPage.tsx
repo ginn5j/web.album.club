@@ -160,7 +160,7 @@ export function MigrationPage() {
 
         const branch = ghMember.branch  // Git branch for this member's private data
         const userId = supabaseMember.userId
-        const isSelf = userId === member.userId
+        const isSelf = userId === member!.userId
 
         // Without the service role key we can only write our own rows
         if (!adminClient && !isSelf) {
