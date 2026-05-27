@@ -28,10 +28,11 @@ CREATE POLICY "invites_select" ON invites FOR SELECT
   USING (invited_by = auth.uid() OR is_member());
 CREATE POLICY "invites_update" ON invites FOR UPDATE USING (is_member());
 
--- albums: all members read; any member can insert/update
+-- albums: all members read/write; delete allowed so undiscussed albums can be removed
 CREATE POLICY "albums_select" ON albums FOR SELECT USING (is_member());
 CREATE POLICY "albums_insert" ON albums FOR INSERT WITH CHECK (is_member());
 CREATE POLICY "albums_update" ON albums FOR UPDATE USING (is_member());
+CREATE POLICY "albums_delete" ON albums FOR DELETE USING (is_member());
 
 -- tags: own row always visible; others' rows only after reveal
 CREATE POLICY "tags_select" ON tags FOR SELECT
@@ -68,7 +69,7 @@ CREATE POLICY "member_settings_own" ON member_settings FOR ALL USING (user_id = 
 -- RLS policies above still control which rows each user can read or write.
 GRANT SELECT, INSERT, UPDATE          ON members         TO authenticated;
 GRANT SELECT, INSERT, UPDATE          ON invites         TO authenticated;
-GRANT SELECT, INSERT, UPDATE          ON albums          TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE  ON albums          TO authenticated;
 GRANT SELECT, INSERT, UPDATE          ON tags            TO authenticated;
 GRANT SELECT, INSERT, UPDATE          ON notes           TO authenticated;
 GRANT SELECT, INSERT                  ON reveals         TO authenticated;

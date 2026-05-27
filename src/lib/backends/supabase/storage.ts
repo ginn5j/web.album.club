@@ -74,8 +74,30 @@ export const supabaseStorage: StorageProvider = {
   },
 
   async setCurrentAlbum(album) {
-    // Deactivate current album first, then upsert new one
-    await supabase.from('albums').update({ is_current: false }).eq('is_current', true)
+    // Find the current album
+    const { data: current } = await supabase
+      .from('albums')
+      .select('album_id')
+      .eq('is_current', true)
+      .maybeSingle()
+
+    if (current) {
+      // Keep it only if a discussion already exists for it; otherwise delete it
+      // so undiscussed/abandoned albums don't accumulate in the table.
+      const { data: discussion } = await supabase
+        .from('discussions')
+        .select('album_id')
+        .eq('album_id', current.album_id)
+        .maybeSingle()
+
+      if (discussion) {
+        await supabase.from('albums').update({ is_current: false }).eq('album_id', current.album_id)
+      } else {
+        await supabase.from('albums').delete().eq('album_id', current.album_id)
+      }
+    }
+
+    // Upsert the new album as current
     const { error } = await supabase.from('albums').upsert(
       {
         album_id: album.id,
