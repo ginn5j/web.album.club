@@ -145,7 +145,10 @@ export const supabaseStorage: StorageProvider = {
     const revealedAt = new Date().toISOString()
     const { error } = await supabase
       .from('reveals')
-      .upsert({ user_id: userId, album_id: albumId, revealed_at: revealedAt }, { onConflict: 'user_id,album_id' })
+      .upsert(
+        { user_id: userId, album_id: albumId, revealed_at: revealedAt },
+        { onConflict: 'user_id,album_id', ignoreDuplicates: true },
+      )
     if (error) throw error
     return { revealedAt }
   },
