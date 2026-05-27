@@ -117,6 +117,7 @@ export function MigrationPage() {
       const supabaseMembers = await backend.storage.getMembers()
 
       for (const ghMember of githubMembers) {
+        // Match by name (display name) first, then fall back to login
         const supabaseMember = supabaseMembers.find(
           (m) => m.displayName === ghMember.name || m.displayName === ghMember.login,
         )
@@ -124,13 +125,17 @@ export function MigrationPage() {
         const prefix = `Member: ${ghMember.name}`
 
         if (!supabaseMember) {
-          log(prefix, 'error', 'Not found in Supabase — must sign in first')
+          const available = supabaseMembers.map((m) => `"${m.displayName}"`).join(', ')
+          log(prefix, 'error',
+            `No Supabase member matched name="${ghMember.name}" or login="${ghMember.login}". ` +
+            `Available display names: ${available || '(none)'}`)
           continue
         }
 
-        log(prefix, 'running')
-        const userId = supabaseMember.userId
+        // branch is the Git branch name for this member's private data — may differ from display name
         const branch = ghMember.branch
+        log(prefix, 'running', `branch=${branch}`)
+        const userId = supabaseMember.userId
 
         try {
           // Tags
@@ -210,7 +215,7 @@ export function MigrationPage() {
         <p className="font-semibold">Before running:</p>
         <ul className="list-disc list-inside space-y-0.5">
           <li>All club members must have signed in at least once so their Supabase accounts exist.</li>
-          <li>Members' display names must match their GitHub names (or logins) from members.json.</li>
+          <li>Each member's Supabase display name must match the <code>name</code> field (or <code>login</code>) in members.json. The <code>branch</code> field is used separately to read their private data.</li>
           <li>Use a GitHub PAT with read access to the album-club repo and all member branches.</li>
         </ul>
       </div>
