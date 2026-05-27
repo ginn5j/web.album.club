@@ -1,47 +1,44 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Disc3 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
-import { AUTH_PROVIDERS } from '../lib/auth/providers'
+import { emailMagicLinkProvider } from '../lib/auth/providers/emailMagicLink'
 
 export function SignInPage() {
-  const [emailInput, setEmailInput] = useState('')
-  const [sentEmail, setSentEmail] = useState<string | null>(null)
-  const [loading, setLoading] = useState<string | null>(null)
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSignIn(providerId: string, input?: string) {
-    const provider = AUTH_PROVIDERS.find((p) => p.id === providerId)
-    if (!provider) return
-    setLoading(providerId)
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    setLoading(true)
     setError(null)
     try {
-      await provider.signIn(input)
-      if (provider.type === 'magiclink') {
-        setSentEmail(input ?? '')
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign-in failed')
+      await emailMagicLinkProvider.signIn(email)
+      setSent(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign-in failed')
     } finally {
-      setLoading(null)
+      setLoading(false)
     }
   }
 
-  if (sentEmail) {
+  if (sent) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="max-w-sm w-full space-y-4 text-center">
           <Disc3 className="mx-auto h-12 w-12 text-indigo-600" />
           <h1 className="text-2xl font-bold text-gray-900">Check your email</h1>
           <p className="text-gray-600">
-            We sent a sign-in link to <strong>{sentEmail}</strong>. Click the link to continue.
+            We sent a sign-in link to <strong>{email}</strong>. Click the link to continue.
           </p>
           <button
-            onClick={() => setSentEmail(null)}
+            onClick={() => { setSent(false); setEmail('') }}
             className="text-sm text-indigo-600 hover:underline"
           >
-            Use a different method
+            Try a different email
           </button>
         </div>
       </div>
@@ -59,38 +56,20 @@ export function SignInPage() {
 
         {error && <ErrorBanner message={error} />}
 
-        <div className="space-y-3">
-          {AUTH_PROVIDERS.map((provider) =>
-            provider.type === 'magiclink' ? (
-              <div key={provider.id} className="space-y-2">
-                <Input
-                  label=""
-                  type="email"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="you@example.com"
-                />
-                <Button
-                  className="w-full"
-                  onClick={() => handleSignIn(provider.id, emailInput)}
-                  disabled={!!loading || !emailInput}
-                >
-                  {loading === provider.id ? 'Sending...' : provider.label}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                key={provider.id}
-                className="w-full"
-                variant="secondary"
-                onClick={() => handleSignIn(provider.id)}
-                disabled={!!loading}
-              >
-                {loading === provider.id ? 'Redirecting...' : provider.label}
-              </Button>
-            ),
-          )}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <Input
+            label=""
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoFocus
+            required
+          />
+          <Button type="submit" className="w-full" disabled={loading || !email}>
+            {loading ? 'Sending…' : 'Send sign-in link'}
+          </Button>
+        </form>
       </div>
     </div>
   )

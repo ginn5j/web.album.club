@@ -5,17 +5,11 @@ import { Input } from '../components/ui/Input'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { backend } from '../lib/backends'
 import { useAuth } from '../lib/auth/AuthContext'
-import { AUTH_PROVIDERS } from '../lib/auth/providers'
 
 export function OnboardingPage() {
   const { session, refreshMember } = useAuth()
-  const suggestedName = session
-    ? AUTH_PROVIDERS.flatMap((p) =>
-        p.getSuggestedDisplayName ? [p.getSuggestedDisplayName(session.user.user_metadata)] : [],
-      ).find(Boolean) ?? ''
-    : ''
 
-  const [displayName, setDisplayName] = useState(suggestedName)
+  const [displayName, setDisplayName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

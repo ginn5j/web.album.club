@@ -25,7 +25,7 @@ A small-group music listening club app — like a book club, but for albums. Mem
 |---------|-------------------|
 | UI | React 18 + TypeScript + Tailwind CSS |
 | Routing | React Router v6 |
-| Auth | Supabase Auth — GitHub OAuth + email magic link |
+| Auth | Supabase Auth — email magic link |
 | Database | Supabase Postgres with Row-Level Security |
 | Real-time | Supabase Realtime (postgres_changes subscriptions) |
 | Music metadata | MusicBrainz API (free, no key required) |
@@ -52,21 +52,21 @@ supabase/migrations/002_rls.sql       # Row-Level Security policies + grants
 supabase/migrations/003_realtime.sql  # Enable Realtime on albums + reveals
 ```
 
-### 3. Enable authentication providers
+### 3. Enable email authentication
 
-In the Supabase Dashboard → Authentication → Providers:
+In the Supabase Dashboard → Authentication → Providers → Email:
+- Enable the Email provider
+- Disable passwords (magic link / OTP only)
+- Add your app URL to Authentication → URL Configuration → Site URL and Redirect URLs
 
-**GitHub OAuth**
-1. Create a GitHub OAuth App: GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
-   - Homepage URL: your app URL (e.g. `https://ginn5j.github.io/album-club-next`)
-   - Authorization callback URL: shown in the Supabase GitHub provider config
-2. Paste the Client ID and Client Secret into Supabase
-3. Add your app URL to Authentication → URL Configuration → Redirect URLs
+### 4. Disable public sign-ups
 
-**Email magic link**  
-Enable the Email provider, disable passwords (magic link only).
+In the Supabase Dashboard → Authentication → Settings:
+- Set **Disable sign ups** to **on**
 
-### 4. Environment variables
+With sign-ups disabled, only users the admin creates in the Supabase Dashboard → Authentication → Users can sign in. Anyone who attempts to sign in with an unrecognised email will receive no link.
+
+### 5. Environment variables
 
 | Variable | Where to find it |
 |----------|-----------------|
@@ -75,7 +75,7 @@ Enable the Email provider, disable passwords (magic link only).
 
 Add both as GitHub Actions secrets in this repo (Settings → Secrets and variables → Actions).
 
-### 5. Set the first admin
+### 6. Set the first admin
 
 After the first user signs in and completes onboarding, promote them to admin in the SQL editor:
 
@@ -83,18 +83,17 @@ After the first user signs in and completes onboarding, promote them to admin in
 UPDATE members SET role = 'admin' WHERE display_name = 'Your Name';
 ```
 
-Admins can create invite tokens for new members from the admin section of the app (not yet exposed in the UI — use Supabase Dashboard → Table Editor → invites for now).
-
 ---
 
 ## Member onboarding
 
-1. Admin creates an invite token for each new member (or they sign in directly if OAuth is unrestricted)
-2. Member opens the app → clicks **Continue with GitHub** (or enters email for a magic link)
-3. On first sign-in with no existing record: member chooses a display name
-4. Member is now active in the club
+1. Admin creates the new member's account in the Supabase Dashboard → Authentication → Users (click **Add user** → **Create new user**, enter their email)
+2. Member opens the app, enters their email, and clicks **Send sign-in link**
+3. Member clicks the link in their email to authenticate
+4. On first sign-in with no existing record: member chooses a display name
+5. Member is now active in the club
 
-Returning members' sessions are restored automatically.
+Returning members' sessions are restored automatically. Users not created by the admin cannot sign in (public sign-ups are disabled).
 
 ---
 
@@ -219,7 +218,7 @@ The `main` branch and its workflow (`deploy.yml`) are unchanged and continue to 
 1. Merge the dev branch to `main`
 2. Update `deploy.yml` to add the Supabase env vars
 3. Delete `deploy-preview.yml` (or repurpose it)
-4. Update the Supabase OAuth redirect URL to the production URL
+4. Update the Supabase Site URL and Redirect URLs to the production URL
 5. Run the data migration, then remove the `/migrate` route
 
 ---
@@ -253,10 +252,10 @@ src/
 │   │   ├── types.ts         # StorageProvider, RealtimeProvider, BackendProvider
 │   │   ├── index.ts         # Active backend (swap here to change backends)
 │   │   └── supabase/        # Supabase implementation (client, storage, realtime)
-│   ├── auth/            # Auth provider abstraction
+│   ├── auth/            # Auth abstraction
 │   │   ├── types.ts         # AuthProviderConfig interface
 │   │   ├── AuthContext.tsx  # React context + useAuth hook
-│   │   └── providers/       # github.ts, emailMagicLink.ts, index.ts (registry)
+│   │   └── providers/       # emailMagicLink.ts, index.ts
 │   ├── github/          # Octokit client + file helpers (Jekyll publishing + migration only)
 │   ├── musicbrainz/     # Rate-limited MusicBrainz client
 │   ├── merge/           # Discussion merger; Jekyll post generator
@@ -268,7 +267,7 @@ src/
 │   ├── useNotes.ts          # Read/write notes via backend.storage (2s auto-save)
 │   └── useWishlist.ts       # Read/write wishlist via backend.storage
 ├── pages/               # Route-level page components
-│   ├── SignInPage.tsx       # Sign-in with configured auth providers
+│   ├── SignInPage.tsx       # Email magic link sign-in form
 │   ├── OnboardingPage.tsx   # Display name form on first sign-in
 │   ├── MigrationPage.tsx    # Admin-only /migrate route
 │   └── ...                  # Album, Discussion, Wishlist, Settings, etc.
@@ -282,13 +281,6 @@ supabase/
     ├── grant_migration.sql   # Run before /migrate — temporary service_role access
     └── revoke_migration.sql  # Run after /migrate — removes service_role access
 ```
-
-### Adding a new auth provider
-
-1. Create `src/lib/auth/providers/yourprovider.ts` implementing `AuthProviderConfig`
-2. Add it to the array in `src/lib/auth/providers/index.ts`
-
-Nothing else changes — `SignInPage` iterates the array automatically.
 
 ### Switching the storage backend
 
