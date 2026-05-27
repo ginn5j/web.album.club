@@ -13,11 +13,10 @@ import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
 import type { WishlistItem } from '../types/wishlist'
 
 interface WishlistPageProps {
-  currentAlbum?: CurrentAlbum | null
   onAlbumPicked?: () => void
 }
 
-export function WishlistPage({ currentAlbum, onAlbumPicked }: WishlistPageProps) {
+export function WishlistPage({ onAlbumPicked }: WishlistPageProps) {
   const { member } = useAuth()
   const userId = member?.userId ?? null
 
