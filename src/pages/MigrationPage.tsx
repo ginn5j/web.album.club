@@ -168,8 +168,16 @@ export function MigrationPage() {
           continue
         }
 
-        const writer = adminClient ?? null  // null means use backend.storage (own data only)
+        const writer = adminClient  // null falls back to backend.storage (own data only)
         log(prefix, 'running', `branch=${branch}`)
+
+        // Collect per-member errors so we can show them without the final
+        // "done" overwriting them (all steps share the same log label).
+        const memberErrors: string[] = []
+        function memberError(msg: string) {
+          memberErrors.push(msg)
+          log(prefix, 'error', memberErrors.join(' | '))
+        }
 
         try {
           const { getOctokit } = await import('../lib/github/client')
@@ -198,7 +206,7 @@ export function MigrationPage() {
                     await backend.storage.setTags(userId, albumId, tagsData.tags as Record<string, TagValue>)
                   }
                 }
-              } catch (e) { log(prefix, 'error', `tags/${file.name}: ${e instanceof Error ? e.message : String(e)}`) }
+              } catch (e) { memberError(`tags/${file.name}: ${e instanceof Error ? e.message : String(e)}`) }
             }
           } catch { /* tags dir may not exist on this branch */ }
 
@@ -225,7 +233,7 @@ export function MigrationPage() {
                     await backend.storage.setNotes(userId, albumId, notesData.notes)
                   }
                 }
-              } catch (e) { log(prefix, 'error', `notes/${file.name}: ${e instanceof Error ? e.message : String(e)}`) }
+              } catch (e) { memberError(`notes/${file.name}: ${e instanceof Error ? e.message : String(e)}`) }
             }
           } catch { /* notes dir may not exist on this branch */ }
 
@@ -244,7 +252,7 @@ export function MigrationPage() {
               }
             }
           } catch (e) {
-            log(prefix, 'error', `wishlist: ${e instanceof Error ? e.message : String(e)}`)
+            memberError(`wishlist: ${e instanceof Error ? e.message : String(e)}`)
           }
 
           // Member settings (blog output config)
@@ -272,12 +280,12 @@ export function MigrationPage() {
               }
             }
           } catch (e) {
-            log(prefix, 'error', `settings: ${e instanceof Error ? e.message : String(e)}`)
+            memberError(`settings: ${e instanceof Error ? e.message : String(e)}`)
           }
 
-          log(prefix, 'done')
+          if (memberErrors.length === 0) log(prefix, 'done')
         } catch (e) {
-          log(prefix, 'error', e instanceof Error ? e.message : String(e))
+          memberError(e instanceof Error ? e.message : String(e))
         }
       }
     } catch (e) {
