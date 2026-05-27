@@ -30,6 +30,7 @@ export function WishlistPage({ currentAlbum, onAlbumPicked }: WishlistPageProps)
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [promoteError, setPromoteError] = useState<string | null>(null)
   const [confirmingPromote, setConfirmingPromote] = useState<WishlistItem | null>(null)
+  const [confirmingCurrentAlbum, setConfirmingCurrentAlbum] = useState<CurrentAlbum | null>(null)
   const [checkingId, setCheckingId] = useState<string | null>(null)
 
   function handleSelect(album: AlbumInfo, _songs: Song[], source: 'musicbrainz' | 'manual') {
@@ -44,19 +45,23 @@ export function WishlistPage({ currentAlbum, onAlbumPicked }: WishlistPageProps)
   }
 
   async function handlePromote(item: WishlistItem) {
-    if (currentAlbum) {
-      setCheckingId(item.id)
-      try {
-        const discussion = await backend.storage.getDiscussion(currentAlbum.id)
+    setCheckingId(item.id)
+    try {
+      // Always fetch the current album fresh — the prop may not be loaded yet
+      // if the user navigated directly to the wishlist page.
+      const current = currentAlbum ?? await backend.storage.getCurrentAlbum()
+      if (current) {
+        const discussion = await backend.storage.getDiscussion(current.id)
         if (!discussion) {
+          setConfirmingCurrentAlbum(current)
           setConfirmingPromote(item)
           return
         }
-      } catch {
-        // proceed
-      } finally {
-        setCheckingId(null)
       }
+    } catch {
+      // proceed — if the check fails, let setCurrentAlbum handle cleanup
+    } finally {
+      setCheckingId(null)
     }
     await doPromote(item)
   }
@@ -97,16 +102,24 @@ export function WishlistPage({ currentAlbum, onAlbumPicked }: WishlistPageProps)
       {error && <ErrorBanner message={error} />}
       {promoteError && <ErrorBanner message={promoteError} />}
 
-      {confirmingPromote && currentAlbum && (
+      {confirmingPromote && confirmingCurrentAlbum && (
         <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
           <p className="text-sm text-amber-700">
-            <strong>{currentAlbum.album.title}</strong> by {currentAlbum.album.artist} hasn't been discussed yet. Are you sure you want to pick <strong>{confirmingPromote.album.title}</strong> instead?
+            <strong>{confirmingCurrentAlbum.album.title}</strong> by {confirmingCurrentAlbum.album.artist} hasn't been discussed yet. Are you sure you want to pick <strong>{confirmingPromote.album.title}</strong> instead?
           </p>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => { const item = confirmingPromote; setConfirmingPromote(null); doPromote(item) }}>
+            <Button size="sm" onClick={() => {
+              const item = confirmingPromote
+              setConfirmingPromote(null)
+              setConfirmingCurrentAlbum(null)
+              doPromote(item)
+            }}>
               Yes, pick it
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setConfirmingPromote(null)}>
+            <Button variant="ghost" size="sm" onClick={() => {
+              setConfirmingPromote(null)
+              setConfirmingCurrentAlbum(null)
+            }}>
               Cancel
             </Button>
           </div>
