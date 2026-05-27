@@ -144,7 +144,59 @@ The Publish PAT is the only GitHub credential in the new version. It is stored i
 ### Data migration from GitHub
 - If your club previously used the GitHub-backed version of this app, the `/migrate` route (admin only) reads your old `album-club` repo and writes everything to Supabase
 - All operations are idempotent — safe to re-run
-- Members must have signed in with their GitHub accounts at least once before migration so their Supabase user IDs exist
+- Members must have signed in at least once before migration so their Supabase user IDs exist
+- See [Data migration from GitHub](#data-migration-from-github-1) below for the full procedure
+
+---
+
+## Data migration from GitHub
+
+If your club was previously running the GitHub-backed version of this app, use the admin-only `/migrate` page to move all data to Supabase. All writes are idempotent — it is safe to re-run.
+
+### Before you start
+
+1. Every member must sign in to the new app at least once and complete onboarding (choose a display name) so their Supabase `user_id` exists.
+2. Each member's chosen display name must match the `name` field in `settings/members.json` from the old repo. The `branch` field is used separately to locate their private data and may differ from their display name.
+3. Prepare a GitHub PAT with **read** access to the old `album-club` repo and all member branches.
+4. Have your Supabase **service role key** ready (Project Settings → API → `service_role`). It is entered directly in the browser and is only sent to your own Supabase project — it is not stored anywhere.
+
+### Migration procedure
+
+**Step 1 — Grant temporary service_role access**
+
+The migration page writes data on behalf of other members, which the normal `authenticated` role cannot do (RLS restricts each user to their own rows). Run this once in the Supabase SQL Editor:
+
+```
+supabase/scripts/grant_migration.sql
+```
+
+**Step 2 — Run the migration**
+
+Sign in as the admin, navigate to `/#/migrate`, and fill in:
+- GitHub PAT (read-only is fine)
+- Old repo owner and repo name
+- Supabase service role key
+
+Click **Run Migration**. Each step shows ✓ on success or ✗ with the error message on failure. Fix any errors and re-run — everything is idempotent.
+
+**Step 3 — Verify the data**
+
+Check a few tables in the Supabase Dashboard → Table Editor:
+- `members` — all members present
+- `albums` — current album and history
+- `discussions` — all past discussions
+- `wishlists` — one row per member with their items
+- `tags` / `notes` — rows for each member × album
+
+**Step 4 — Revoke service_role access**
+
+Once you are satisfied the migration is complete, remove the temporary grants:
+
+```
+supabase/scripts/revoke_migration.sql
+```
+
+The app never uses the service role key during normal operation. Revoking these privileges means a leaked or misused service key cannot read or modify app data through the REST API.
 
 ---
 
@@ -221,9 +273,12 @@ src/
 │   └── ...                  # Album, Discussion, Wishlist, Settings, etc.
 └── components/          # Shared UI components
 supabase/
-└── migrations/
-    ├── 001_initial.sql  # All tables
-    └── 002_rls.sql      # Row-Level Security policies
+├── migrations/
+│   ├── 001_initial.sql  # All tables
+│   └── 002_rls.sql      # Row-Level Security policies + authenticated grants
+└── scripts/
+    ├── grant_migration.sql   # Run before /migrate — temporary service_role access
+    └── revoke_migration.sql  # Run after /migrate — removes service_role access
 ```
 
 ### Adding a new auth provider

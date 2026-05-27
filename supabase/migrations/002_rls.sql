@@ -76,15 +76,6 @@ GRANT SELECT, INSERT, UPDATE          ON discussions     TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE  ON wishlists       TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE  ON member_settings TO authenticated;
 
--- Grant the same to service_role (used by the admin migration client).
--- service_role is a separate postgres role from authenticated and needs
--- its own grants when auto-expose is disabled.
-GRANT SELECT, INSERT, UPDATE          ON members         TO service_role;
-GRANT SELECT, INSERT, UPDATE          ON invites         TO service_role;
-GRANT SELECT, INSERT, UPDATE          ON albums          TO service_role;
-GRANT SELECT, INSERT, UPDATE          ON tags            TO service_role;
-GRANT SELECT, INSERT, UPDATE          ON notes           TO service_role;
-GRANT SELECT, INSERT                  ON reveals         TO service_role;
-GRANT SELECT, INSERT, UPDATE          ON discussions     TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE  ON wishlists       TO service_role;
-GRANT SELECT, INSERT, UPDATE, DELETE  ON member_settings TO service_role;
+-- service_role grants are NOT included here. They are only needed temporarily
+-- for the one-time data migration. See supabase/scripts/grant_migration.sql
+-- and supabase/scripts/revoke_migration.sql.
