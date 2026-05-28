@@ -29,7 +29,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: Test
         run: npm test
@@ -38,6 +38,8 @@ jobs:
         run: npm run build
         env:
           VITE_BASE_URL: ${{ env.VITE_BASE_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Checkout pages repo
         uses: actions/checkout@v4
