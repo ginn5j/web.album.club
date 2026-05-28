@@ -7,7 +7,11 @@ export const supabaseRealtime: RealtimeProvider = {
     const channel = supabase
       .channel('albums-current')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'albums' }, () => {
-        supabaseStorage.getCurrentAlbum().then(cb).catch(() => {})
+        supabaseStorage.getCurrentAlbum().then((album) => {
+          // Ignore null: during album swap the DELETE fires before the INSERT,
+          // briefly returning null. The INSERT event delivers the new album.
+          if (album !== null) cb(album)
+        }).catch(() => {})
       })
       .subscribe()
 

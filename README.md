@@ -246,6 +246,7 @@ npm test           # run test suite
 ```
 src/
 ├── types/               # TypeScript interfaces (album, member, discussion, wishlist)
+├── data/                # Static content (changelog)
 ├── constants/config.ts  # MusicBrainz URLs, path helpers; legacy GitHub constants kept for MigrationPage
 ├── lib/
 │   ├── backends/        # BackendProvider interface + Supabase implementation
@@ -263,6 +264,7 @@ src/
 ├── hooks/               # React hooks
 │   ├── useRealtimeAlbum.ts  # Supabase Realtime subscription for current album
 │   ├── useRealtimeReveal.ts # Supabase Realtime subscription for reveal events
+│   ├── useMusicBrainz.ts    # Debounced MusicBrainz search with 500ms delay
 │   ├── useSongTags.ts       # Read/write tags via backend.storage
 │   ├── useNotes.ts          # Read/write notes via backend.storage (2s auto-save)
 │   └── useWishlist.ts       # Read/write wishlist via backend.storage
@@ -281,17 +283,6 @@ supabase/
     ├── grant_migration.sql   # Run before /migrate — temporary service_role access
     └── revoke_migration.sql  # Run after /migrate — removes service_role access
 ```
-
-### Switching the storage backend
-
-Change the one import in `src/lib/backends/index.ts`:
-
-```typescript
-import { neonBackend } from './neon'
-export const backend: BackendProvider = neonBackend
-```
-
-All hooks and pages call `backend.storage.*` and `backend.realtime.*` — none of them import from `./supabase` directly.
 
 ---
 

@@ -43,7 +43,7 @@ describe('decodeContent', () => {
     const rawB64 = encodeContent(original)
     // Insert newlines as GitHub does
     const withNewlines = rawB64.replace(/.{20}/g, '$&\n')
-    // decodeContent strips \n before decoding
-    expect(decodeContent(withNewlines.replace(/\n/g, ''))).toBe(original)
+    // decodeContent must strip \n itself before calling atob
+    expect(decodeContent(withNewlines)).toBe(original)
   })
 })

@@ -91,9 +91,11 @@ export const supabaseStorage: StorageProvider = {
         .maybeSingle()
 
       if (discussion) {
-        await supabase.from('albums').update({ is_current: false }).eq('album_id', current.album_id)
+        const { error: deactivateError } = await supabase.from('albums').update({ is_current: false }).eq('album_id', current.album_id)
+        if (deactivateError) throw deactivateError
       } else {
-        await supabase.from('albums').delete().eq('album_id', current.album_id)
+        const { error: deleteError } = await supabase.from('albums').delete().eq('album_id', current.album_id)
+        if (deleteError) throw deleteError
       }
     }
 

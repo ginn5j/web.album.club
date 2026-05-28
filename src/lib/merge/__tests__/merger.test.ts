@@ -132,4 +132,19 @@ describe('mergeDiscussion', () => {
     expect(result.members['Bob'].name).toBe('Bob')
     expect(result.members['Bob'].tags).toEqual({ '1': 'Bench', '2': 'Starter' })
   })
+
+  it('last writer wins when two members share the same displayName', () => {
+    const alice2: Member = { id: 'row-3', userId: 'uid-alice2', displayName: 'Alice', role: 'member', createdAt: '2024-01-03T00:00:00Z' }
+    const result = mergeDiscussion(
+      baseAlbum,
+      [
+        { member: aliceMember, tags: aliceTags, notes: 'first' },
+        { member: alice2,      tags: { '1': 'Cut' }, notes: 'second' },
+      ],
+      '2024-06-15T20:00:00Z',
+    )
+    expect(Object.keys(result.members)).toHaveLength(1)
+    expect(result.members['Alice'].notes).toBe('second')
+    expect(result.members['Alice'].tags).toEqual({ '1': 'Cut' })
+  })
 })

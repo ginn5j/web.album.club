@@ -56,9 +56,15 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
     async function loadOrCreateDiscussion() {
       if (!currentAlbum || !albumId) return
       try {
-        // Always fetch members fresh — avoids a race with App.tsx's getMembers()
-        // where membersRef could be empty and produce an empty merged discussion
-        // that overwrites real data in the DB.
+        // If another member already triggered the merge, use the existing record
+        // rather than re-merging — a failed per-member fetch would corrupt it.
+        const existing = await backend.storage.getDiscussion(albumId)
+        if (existing) {
+          setDiscussion(existing)
+          return
+        }
+
+        // No discussion yet — merge all members' data and persist.
         const allMembers = await backend.storage.getMembers()
         const memberData = await Promise.all(
           allMembers.map(async (m) => {
