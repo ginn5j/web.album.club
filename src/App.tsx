@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
 import { Disc3, Star, MessageSquare, ListMusic, BookOpen, Settings, Home, Info } from 'lucide-react'
 import { ToastContainer, type ToastMessage } from './components/ui/Toast'
+import { Spinner } from './components/ui/Spinner'
 import { ErrorBanner } from './components/ui/ErrorBanner'
 import { SettingsPage } from './pages/SettingsPage'
 import { HomePage } from './pages/HomePage'
@@ -12,11 +13,13 @@ import { DiscussionsListPage } from './pages/DiscussionsListPage'
 import { DiscussionEditPage } from './pages/DiscussionEditPage'
 import { DiscussionViewPage } from './pages/DiscussionViewPage'
 import { AboutPage } from './pages/AboutPage'
-import { loadLocalSettings, isSettingsComplete, type LocalSettings } from './lib/settings'
-import { useActiveAlbum } from './hooks/useActiveAlbum'
-import { readMembers } from './lib/storage/album'
+import { SignInPage } from './pages/SignInPage'
+import { OnboardingPage } from './pages/OnboardingPage'
+import { useAuth } from './lib/auth/AuthContext'
+import { useRealtimeAlbum } from './hooks/useRealtimeAlbum'
+import { backend } from './lib/backends'
 import type { CurrentAlbum } from './types/album'
-import type { Member, MembersConfig } from './types/member'
+import type { Member } from './types/member'
 
 function useToasts() {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -37,59 +40,47 @@ export function App() {
   const navigate = useNavigate()
   const location = useLocation()
   const { toasts, addToast, dismissToast } = useToasts()
-
-  const [settings, setSettings] = useState<LocalSettings | null>(() => {
-    const raw = loadLocalSettings()
-    return isSettingsComplete(raw) ? raw : null
-  })
-
-  const refreshSettings = useCallback(() => {
-    const raw = loadLocalSettings()
-    setSettings(isSettingsComplete(raw) ? raw : null)
-  }, [])
+  const { session, member, loading: authLoading } = useAuth()
 
   const [members, setMembers] = useState<Member[]>([])
   const [membersError, setMembersError] = useState<string | null>(null)
 
-  // Redirect to settings if not configured
-  useEffect(() => {
-    if (!settings && location.pathname !== '/settings') {
-      navigate('/settings')
-    }
-  }, [settings, location.pathname, navigate])
-
-  // Load members list on startup
-  useEffect(() => {
-    if (!settings) return
-    readMembers(settings.pat, settings.repoOwner, settings.repoName)
-      .then((data: MembersConfig | null) => {
-        if (data?.members) setMembers(data.members)
-      })
-      .catch((e: unknown) => setMembersError(e instanceof Error ? e.message : 'Failed to load members'))
-  }, [settings?.pat, settings?.repoOwner, settings?.repoName])
-
   const handleAlbumChanged = useCallback(
     (album: CurrentAlbum) => {
-      addToast(
-        `New album picked: ${album.album.title} by ${album.album.artist}`,
-        'info',
-      )
+      addToast(`New album picked: ${album.album.title} by ${album.album.artist}`, 'info')
     },
     [addToast],
   )
 
-  const { currentAlbum, loading: albumLoading, error: albumError, refresh } = useActiveAlbum(
-    settings,
-    handleAlbumChanged,
-  )
+  const { currentAlbum, loading: albumLoading, error: albumError, refresh } = useRealtimeAlbum(handleAlbumChanged, !!member)
 
   const handleAlbumPicked = useCallback(() => {
     refresh()
     navigate('/')
   }, [refresh, navigate])
 
-  if (!settings) {
-    return <SettingsPage onSave={refreshSettings} />
+  useEffect(() => {
+    if (!member) return
+    backend.storage
+      .getMembers()
+      .then(setMembers)
+      .catch((e: unknown) => setMembersError(e instanceof Error ? e.message : 'Failed to load members'))
+  }, [session])
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Spinner />
+      </div>
+    )
+  }
+
+  if (!session) {
+    return <SignInPage />
+  }
+
+  if (!member) {
+    return <OnboardingPage />
   }
 
   const navItems = [
@@ -148,14 +139,12 @@ export function App() {
         </div>
       </header>
 
-      {/* Errors */}
       {membersError && (
         <div className="max-w-3xl mx-auto px-4 pt-4 w-full">
           <ErrorBanner message={`Failed to load members: ${membersError}`} />
         </div>
       )}
 
-      {/* Main content */}
       <main className="flex-1">
         <Routes>
           <Route
@@ -165,14 +154,13 @@ export function App() {
                 currentAlbum={currentAlbum}
                 loading={albumLoading}
                 albumError={albumError}
-                settings={settings}
                 onAlbumPicked={handleAlbumPicked}
               />
             }
           />
           <Route
             path="/album"
-            element={<AlbumPage currentAlbum={currentAlbum} settings={settings} members={members} />}
+            element={<AlbumPage currentAlbum={currentAlbum} />}
           />
           <Route
             path="/discuss"
@@ -180,31 +168,18 @@ export function App() {
               <DiscussionPage
                 currentAlbum={currentAlbum}
                 members={members}
-                settings={settings}
               />
             }
           />
           <Route
             path="/wishlist"
-            element={<WishlistPage settings={settings} currentAlbum={currentAlbum} onAlbumPicked={handleAlbumPicked} />}
+            element={<WishlistPage onAlbumPicked={handleAlbumPicked} />}
           />
-          <Route
-            path="/discussions"
-            element={<DiscussionsListPage settings={settings} />}
-          />
-          <Route
-            path="/discussions/new"
-            element={<DiscussionEditPage settings={settings} members={members} />}
-          />
-          <Route
-            path="/discussions/:albumId"
-            element={<DiscussionViewPage settings={settings} />}
-          />
-          <Route
-            path="/discussions/:albumId/edit"
-            element={<DiscussionEditPage settings={settings} members={members} />}
-          />
-          <Route path="/settings" element={<SettingsPage onSave={refreshSettings} />} />
+          <Route path="/discussions" element={<DiscussionsListPage />} />
+          <Route path="/discussions/new" element={<DiscussionEditPage />} />
+          <Route path="/discussions/:albumId" element={<DiscussionViewPage />} />
+          <Route path="/discussions/:albumId/edit" element={<DiscussionEditPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>

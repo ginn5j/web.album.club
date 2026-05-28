@@ -5,20 +5,14 @@ import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { AlbumSearch } from '../components/AlbumSearch'
-import { readDiscussion, writeDiscussion } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
 import type { DiscussionData, MemberDiscussionData, TagValue } from '../types/discussion'
 import type { AlbumInfo, Song } from '../types/album'
 import type { Member } from '../types/member'
-import type { LocalSettings } from '../lib/settings'
 
 const TAG_OPTIONS: TagValue[] = ['Starter', 'Bench', 'Cut']
 
-interface DiscussionEditPageProps {
-  settings: LocalSettings
-  members: Member[]
-}
-
-export function DiscussionEditPage({ settings, members }: DiscussionEditPageProps) {
+export function DiscussionEditPage() {
   const { albumId } = useParams<{ albumId: string }>()
   const isNew = albumId === 'new' || !albumId
   const navigate = useNavigate()
@@ -27,29 +21,31 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Form state
+  const [members, setMembers] = useState<Member[]>([])
   const [album, setAlbum] = useState<AlbumInfo | null>(null)
   const [songs, setSongs] = useState<Song[]>([])
   const [pickedBy, setPickedBy] = useState('')
   const [discussedAt, setDiscussedAt] = useState(new Date().toISOString().slice(0, 10))
   const [memberData, setMemberData] = useState<Record<string, MemberDiscussionData>>({})
 
-  // For new entries: initialize member rows whenever the members list arrives
+  useEffect(() => {
+    backend.storage.getMembers().then(setMembers).catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (!isNew) return
     const init: Record<string, MemberDiscussionData> = {}
     for (const m of members) {
-      init[m.login] = { name: m.name, tags: {}, notes: '' }
+      init[m.displayName] = { name: m.displayName, tags: {}, notes: '' }
     }
     setMemberData(init)
   }, [isNew, members])
 
-  // For existing entries: load the discussion once from the API
   useEffect(() => {
     if (isNew) return
-    async function load() {
-      try {
-        const d = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, albumId!)
+    backend.storage
+      .getDiscussion(albumId!)
+      .then((d) => {
         if (d) {
           setAlbum(d.album)
           setSongs(d.songs)
@@ -57,40 +53,36 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
           setDiscussedAt(d.discussedAt.slice(0, 10))
           setMemberData(d.members)
         }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load discussion')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [albumId, isNew, settings])
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load discussion'))
+      .finally(() => setLoading(false))
+  }, [albumId, isNew])
 
   function handleAlbumSelected(a: AlbumInfo, s: Song[]) {
     setAlbum(a)
     setSongs(s)
   }
 
-  function setMemberTag(login: string, position: number, tag: TagValue | '') {
+  function setMemberTag(displayName: string, position: number, tag: TagValue | '') {
     setMemberData((prev) => {
       const next = { ...prev }
-      const member = { ...next[login] }
+      const m = { ...next[displayName] }
       if (tag === '') {
-        const tags = { ...member.tags }
+        const tags = { ...m.tags }
         delete tags[String(position)]
-        member.tags = tags
+        m.tags = tags
       } else {
-        member.tags = { ...member.tags, [String(position)]: tag }
+        m.tags = { ...m.tags, [String(position)]: tag }
       }
-      next[login] = member
+      next[displayName] = m
       return next
     })
   }
 
-  function setMemberNotes(login: string, notes: string) {
+  function setMemberNotes(displayName: string, notes: string) {
     setMemberData((prev) => ({
       ...prev,
-      [login]: { ...prev[login], notes },
+      [displayName]: { ...prev[displayName], notes },
     }))
   }
 
@@ -112,7 +104,7 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
     }
 
     try {
-      await writeDiscussion(settings.pat, settings.repoOwner, settings.repoName, discussion)
+      await backend.storage.upsertDiscussion(discussion)
       navigate('/discussions')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save discussion')
@@ -142,8 +134,7 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
 
       {error && <ErrorBanner message={error} />}
 
-      {/* Album selection (new only or show readonly) */}
-      {isNew || !album ? (
+      {!album ? (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-700">Album</h3>
           <AlbumSearch onSelect={handleAlbumSelected} />
@@ -162,7 +153,6 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
 
       {album && (
         <>
-          {/* Metadata */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Discussion Date</label>
@@ -182,20 +172,17 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
               >
                 <option value="">— select —</option>
                 {members.map((m) => (
-                  <option key={m.login} value={m.login}>
-                    {m.name}
+                  <option key={m.userId} value={m.displayName}>
+                    {m.displayName}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Per-member entry */}
-          {Object.entries(memberData).map(([login, mData]) => (
-            <div key={login} className="space-y-3 border border-gray-200 rounded-lg p-4">
+          {Object.entries(memberData).map(([displayName, mData]) => (
+            <div key={displayName} className="space-y-3 border border-gray-200 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900">{mData.name}</h3>
-
-              {/* Tags per song */}
               <div className="space-y-1">
                 {songs.map((song) => (
                   <div key={song.position} className="flex items-center gap-3">
@@ -207,28 +194,24 @@ export function DiscussionEditPage({ settings, members }: DiscussionEditPageProp
                       className="text-xs rounded border border-gray-200 px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       value={mData.tags[String(song.position)] ?? ''}
                       onChange={(e) =>
-                        setMemberTag(login, song.position, e.target.value as TagValue | '')
+                        setMemberTag(displayName, song.position, e.target.value as TagValue | '')
                       }
                     >
                       <option value="">—</option>
                       {TAG_OPTIONS.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
+                        <option key={t} value={t}>{t}</option>
                       ))}
                     </select>
                   </div>
                 ))}
               </div>
-
-              {/* Notes */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-gray-500">Notes</label>
                 <textarea
                   className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
                   rows={3}
                   value={mData.notes}
-                  onChange={(e) => setMemberNotes(login, e.target.value)}
+                  onChange={(e) => setMemberNotes(displayName, e.target.value)}
                   placeholder={`${mData.name}'s notes...`}
                 />
               </div>

@@ -6,15 +6,10 @@ import { PublishButton } from '../components/PublishButton'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
-import { readDiscussion } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
 import type { DiscussionData } from '../types/discussion'
-import type { LocalSettings } from '../lib/settings'
 
-interface DiscussionViewPageProps {
-  settings: LocalSettings
-}
-
-export function DiscussionViewPage({ settings }: DiscussionViewPageProps) {
+export function DiscussionViewPage() {
   const { albumId } = useParams<{ albumId: string }>()
   const navigate = useNavigate()
   const [discussion, setDiscussion] = useState<DiscussionData | null>(null)
@@ -23,18 +18,12 @@ export function DiscussionViewPage({ settings }: DiscussionViewPageProps) {
 
   useEffect(() => {
     if (!albumId) return
-    async function load() {
-      try {
-        const d = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, albumId!)
-        setDiscussion(d)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load discussion')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [albumId, settings])
+    backend.storage
+      .getDiscussion(albumId)
+      .then(setDiscussion)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load discussion'))
+      .finally(() => setLoading(false))
+  }, [albumId])
 
   if (loading) {
     return (
@@ -97,10 +86,7 @@ export function DiscussionViewPage({ settings }: DiscussionViewPageProps) {
       <MergedView discussion={discussion} />
 
       <div className="border-t border-gray-200 pt-4">
-        <PublishButton
-          discussion={discussion}
-          localSettings={settings}
-        />
+        <PublishButton discussion={discussion} />
       </div>
     </div>
   )

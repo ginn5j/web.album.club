@@ -48,6 +48,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
       setQuery('')
       setFilterCountry('')
       setFilterYear('')
+      setFilterFormat('')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to load album details')
     } finally {

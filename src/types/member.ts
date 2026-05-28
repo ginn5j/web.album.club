@@ -1,20 +1,20 @@
 export interface Member {
-  login: string
-  name: string
-  branch: string
+  id: string
+  userId: string
+  displayName: string
+  role: 'admin' | 'member'
+  createdAt: string
 }
 
-export interface MembersConfig {
-  members: Member[]
+export interface OutputSettings {
+  owner: string
+  repo: string
+  postsPath: string
+  branch: string
+  template?: string
 }
 
 export interface MemberSettings {
-  name: string
-  output?: {
-    owner: string
-    repo: string
-    postsPath: string
-    branch: string
-    template?: string
-  }
+  publishPat?: string
+  output?: OutputSettings
 }

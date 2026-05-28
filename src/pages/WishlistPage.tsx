@@ -6,24 +6,21 @@ import { WishlistItem as WishlistItemComponent } from '../components/WishlistIte
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { Spinner } from '../components/ui/Spinner'
 import { useWishlist } from '../hooks/useWishlist'
-import { writeCurrentAlbum } from '../lib/storage/album'
-import { readDiscussion } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
+import { useAuth } from '../lib/auth/AuthContext'
 import { buildCurrentAlbum, lookupRelease } from '../lib/musicbrainz/lookup'
 import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
 import type { WishlistItem } from '../types/wishlist'
-import type { LocalSettings } from '../lib/settings'
 
 interface WishlistPageProps {
-  settings: LocalSettings
-  currentAlbum?: CurrentAlbum | null
   onAlbumPicked?: () => void
 }
 
-export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: WishlistPageProps) {
-  const { items, loading, error, addItem, removeItem, updateItem, reorderItems } = useWishlist(
-    settings,
-    settings.myLogin,
-  )
+export function WishlistPage({ onAlbumPicked }: WishlistPageProps) {
+  const { member } = useAuth()
+  const userId = member?.userId ?? null
+
+  const { items, loading, error, addItem, removeItem, updateItem, reorderItems } = useWishlist(userId)
 
   const [adding, setAdding] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
@@ -32,6 +29,7 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
   const [promotingId, setPromotingId] = useState<string | null>(null)
   const [promoteError, setPromoteError] = useState<string | null>(null)
   const [confirmingPromote, setConfirmingPromote] = useState<WishlistItem | null>(null)
+  const [confirmingCurrentAlbum, setConfirmingCurrentAlbum] = useState<CurrentAlbum | null>(null)
   const [checkingId, setCheckingId] = useState<string | null>(null)
 
   function handleSelect(album: AlbumInfo, _songs: Song[], source: 'musicbrainz' | 'manual') {
@@ -46,24 +44,30 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
   }
 
   async function handlePromote(item: WishlistItem) {
-    if (currentAlbum) {
-      setCheckingId(item.id)
-      try {
-        const discussion = await readDiscussion(settings.pat, settings.repoOwner, settings.repoName, currentAlbum.id)
+    setCheckingId(item.id)
+    try {
+      // Always fetch the current album fresh from the backend.
+      // The currentAlbum prop can be stale (e.g. user picked a new album on
+      // the home page then navigated here before the React state updated).
+      const current = await backend.storage.getCurrentAlbum()
+      if (current) {
+        const discussion = await backend.storage.getDiscussion(current.id)
         if (!discussion) {
+          setConfirmingCurrentAlbum(current)
           setConfirmingPromote(item)
           return
         }
-      } catch {
-        // proceed
-      } finally {
-        setCheckingId(null)
       }
+    } catch {
+      // proceed — if the check fails, let setCurrentAlbum handle cleanup
+    } finally {
+      setCheckingId(null)
     }
     await doPromote(item)
   }
 
   async function doPromote(item: WishlistItem) {
+    if (!member) return
     setPromotingId(item.id)
     setPromoteError(null)
     try {
@@ -74,8 +78,8 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
         album = data.album
         songs = data.songs
       }
-      const current = buildCurrentAlbum(album, songs, settings.myLogin, item.source)
-      await writeCurrentAlbum(settings.pat, settings.repoOwner, settings.repoName, current)
+      const current = buildCurrentAlbum(album, songs, member.displayName, item.source)
+      await backend.storage.setCurrentAlbum(current)
       await removeItem(item.id)
       onAlbumPicked?.()
     } catch (e) {
@@ -98,16 +102,24 @@ export function WishlistPage({ settings, currentAlbum, onAlbumPicked }: Wishlist
       {error && <ErrorBanner message={error} />}
       {promoteError && <ErrorBanner message={promoteError} />}
 
-      {confirmingPromote && currentAlbum && (
+      {confirmingPromote && confirmingCurrentAlbum && (
         <div className="space-y-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
           <p className="text-sm text-amber-700">
-            <strong>{currentAlbum.album.title}</strong> by {currentAlbum.album.artist} hasn't been discussed yet. Are you sure you want to pick <strong>{confirmingPromote.album.title}</strong> instead?
+            <strong>{confirmingCurrentAlbum.album.title}</strong> by {confirmingCurrentAlbum.album.artist} hasn't been discussed yet. Are you sure you want to pick <strong>{confirmingPromote.album.title}</strong> instead?
           </p>
           <div className="flex gap-2">
-            <Button size="sm" onClick={() => { const item = confirmingPromote; setConfirmingPromote(null); doPromote(item) }}>
+            <Button size="sm" onClick={() => {
+              const item = confirmingPromote
+              setConfirmingPromote(null)
+              setConfirmingCurrentAlbum(null)
+              doPromote(item)
+            }}>
               Yes, pick it
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setConfirmingPromote(null)}>
+            <Button variant="ghost" size="sm" onClick={() => {
+              setConfirmingPromote(null)
+              setConfirmingCurrentAlbum(null)
+            }}>
               Cancel
             </Button>
           </div>

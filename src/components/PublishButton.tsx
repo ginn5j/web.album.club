@@ -3,33 +3,30 @@ import { Upload, ExternalLink } from 'lucide-react'
 import { Button } from './ui/Button'
 import { generateJekyllPost, generateJekyllFilename } from '../lib/merge/jekyll'
 import { commitFileToRepo } from '../lib/github/files'
-import { readMemberSettings } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
+import { useAuth } from '../lib/auth/AuthContext'
 import type { DiscussionData } from '../types/discussion'
-import type { MemberSettings } from '../types/member'
-import type { LocalSettings } from '../lib/settings'
+import type { MemberSettingsData } from '../lib/backends/types'
 
 interface PublishButtonProps {
   discussion: DiscussionData
-  localSettings: LocalSettings
 }
 
-export function PublishButton({ discussion, localSettings }: PublishButtonProps) {
-  const [memberSettings, setMemberSettings] = useState<MemberSettings | null>(null)
+export function PublishButton({ discussion }: PublishButtonProps) {
+  const { member } = useAuth()
+  const [memberSettings, setMemberSettings] = useState<MemberSettingsData | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [publishDate, setPublishDate] = useState(() => new Date().toISOString())
 
   useEffect(() => {
-    readMemberSettings(
-      localSettings.pat,
-      localSettings.repoOwner,
-      localSettings.repoName,
-      localSettings.myLogin,
-    )
-      .then((ms) => setMemberSettings(ms))
+    if (!member?.userId) return
+    backend.storage
+      .getMemberSettings(member.userId)
+      .then(setMemberSettings)
       .catch(() => {})
-  }, [localSettings.pat, localSettings.repoOwner, localSettings.repoName, localSettings.myLogin])
+  }, [member?.userId])
 
   if (!memberSettings?.output) {
     return (
@@ -49,7 +46,7 @@ export function PublishButton({ discussion, localSettings }: PublishButtonProps)
       const post = generateJekyllPost(discussion, publishDate, output.template)
       const path = generateJekyllFilename(discussion, output.postsPath, publishDate)
       await commitFileToRepo(
-        localSettings.publishPat ?? localSettings.pat,
+        memberSettings.publishPat ?? '',
         output.owner,
         output.repo,
         output.branch,
@@ -78,11 +75,7 @@ export function PublishButton({ discussion, localSettings }: PublishButtonProps)
         />
       </div>
       <div className="flex items-center gap-3">
-        <Button
-          variant="secondary"
-          onClick={handlePublish}
-          disabled={publishing}
-        >
+        <Button variant="secondary" onClick={handlePublish} disabled={publishing}>
           <Upload className="h-4 w-4" />
           {publishing ? 'Publishing...' : published ? 'Republish' : 'Publish to Blog'}
         </Button>

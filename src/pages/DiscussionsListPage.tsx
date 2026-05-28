@@ -4,42 +4,23 @@ import { BookOpen, Edit, Plus } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
-import { listDiscussions, readDiscussion } from '../lib/storage/discussion'
+import { backend } from '../lib/backends'
 import type { DiscussionData } from '../types/discussion'
-import type { LocalSettings } from '../lib/settings'
 
-interface DiscussionsListPageProps {
-  settings: LocalSettings
-}
-
-export function DiscussionsListPage({ settings }: DiscussionsListPageProps) {
+export function DiscussionsListPage() {
   const navigate = useNavigate()
   const [discussions, setDiscussions] = useState<DiscussionData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const ids = await listDiscussions(settings.pat, settings.repoOwner, settings.repoName)
+    backend.storage
+      .listDiscussions()
+      .then(setDiscussions)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load discussions'))
+      .finally(() => setLoading(false))
+  }, [])
 
-        // Load all discussions in parallel
-        const loaded = await Promise.all(
-          ids.map((id) =>
-            readDiscussion(settings.pat, settings.repoOwner, settings.repoName, id).catch(() => null),
-          ),
-        )
-        setDiscussions(loaded.filter((d): d is DiscussionData => d !== null))
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load discussions')
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [settings])
-
-  // Sort by discussedAt descending
   const sorted = [...discussions].sort(
     (a, b) => new Date(b.discussedAt).getTime() - new Date(a.discussedAt).getTime(),
   )

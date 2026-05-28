@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { mergeDiscussion } from '../merger'
 import type { CurrentAlbum } from '../../../types/album'
-import type { TagsFile, NotesFile } from '../../../types/discussion'
+import type { TagValue } from '../../../types/discussion'
+import type { Member } from '../../../types/member'
 
 const baseAlbum: CurrentAlbum = {
   schemaVersion: 1,
@@ -20,23 +21,25 @@ const baseAlbum: CurrentAlbum = {
   ],
 }
 
-const aliceTags: TagsFile = {
-  albumId: baseAlbum.id,
-  updatedAt: '2024-06-15T19:00:00Z',
-  tags: { '1': 'Starter', '2': 'Bench' },
+const aliceMember: Member = {
+  id: 'row-1',
+  userId: 'uid-alice',
+  displayName: 'Alice',
+  role: 'member',
+  createdAt: '2024-01-01T00:00:00Z',
 }
 
-const aliceNotes: NotesFile = {
-  albumId: baseAlbum.id,
-  updatedAt: '2024-06-15T19:30:00Z',
-  notes: 'Absolute classic.',
+const bobMember: Member = {
+  id: 'row-2',
+  userId: 'uid-bob',
+  displayName: 'Bob',
+  role: 'member',
+  createdAt: '2024-01-02T00:00:00Z',
 }
 
-const bobTags: TagsFile = {
-  albumId: baseAlbum.id,
-  updatedAt: '2024-06-15T19:05:00Z',
-  tags: { '1': 'Bench', '2': 'Starter' },
-}
+const aliceTags: Record<string, TagValue> = { '1': 'Starter', '2': 'Bench' }
+const aliceNotes = 'Absolute classic.'
+const bobTags: Record<string, TagValue> = { '1': 'Bench', '2': 'Starter' }
 
 describe('mergeDiscussion', () => {
   it('sets schemaVersion to 1', () => {
@@ -75,22 +78,22 @@ describe('mergeDiscussion', () => {
     expect(result.members).toEqual({})
   })
 
-  it('keys each member by login', () => {
+  it('keys each member by displayName', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: aliceNotes }],
+      [{ member: aliceMember, tags: aliceTags, notes: aliceNotes }],
       '2024-06-15T20:00:00Z',
     )
-    expect(Object.keys(result.members)).toContain('alice')
+    expect(Object.keys(result.members)).toContain('Alice')
   })
 
   it('maps member name, tags, and notes correctly', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: aliceNotes }],
+      [{ member: aliceMember, tags: aliceTags, notes: aliceNotes }],
       '2024-06-15T20:00:00Z',
     )
-    expect(result.members['alice']).toEqual({
+    expect(result.members['Alice']).toEqual({
       name: 'Alice',
       tags: { '1': 'Starter', '2': 'Bench' },
       notes: 'Absolute classic.',
@@ -100,33 +103,48 @@ describe('mergeDiscussion', () => {
   it('falls back to empty tags object when tags is null', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: null, notes: aliceNotes }],
+      [{ member: aliceMember, tags: null, notes: aliceNotes }],
       '2024-06-15T20:00:00Z',
     )
-    expect(result.members['alice'].tags).toEqual({})
+    expect(result.members['Alice'].tags).toEqual({})
   })
 
   it('falls back to empty string when notes is null', () => {
     const result = mergeDiscussion(
       baseAlbum,
-      [{ member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: null }],
+      [{ member: aliceMember, tags: aliceTags, notes: null }],
       '2024-06-15T20:00:00Z',
     )
-    expect(result.members['alice'].notes).toBe('')
+    expect(result.members['Alice'].notes).toBe('')
   })
 
   it('merges data from multiple members', () => {
     const result = mergeDiscussion(
       baseAlbum,
       [
-        { member: { login: 'alice', name: 'Alice', branch: 'alice' }, tags: aliceTags, notes: aliceNotes },
-        { member: { login: 'bob', name: 'Bob', branch: 'bob' }, tags: bobTags, notes: null },
+        { member: aliceMember, tags: aliceTags, notes: aliceNotes },
+        { member: bobMember, tags: bobTags, notes: null },
       ],
       '2024-06-15T20:00:00Z',
     )
     expect(Object.keys(result.members)).toHaveLength(2)
-    expect(result.members['alice'].name).toBe('Alice')
-    expect(result.members['bob'].name).toBe('Bob')
-    expect(result.members['bob'].tags).toEqual({ '1': 'Bench', '2': 'Starter' })
+    expect(result.members['Alice'].name).toBe('Alice')
+    expect(result.members['Bob'].name).toBe('Bob')
+    expect(result.members['Bob'].tags).toEqual({ '1': 'Bench', '2': 'Starter' })
+  })
+
+  it('last writer wins when two members share the same displayName', () => {
+    const alice2: Member = { id: 'row-3', userId: 'uid-alice2', displayName: 'Alice', role: 'member', createdAt: '2024-01-03T00:00:00Z' }
+    const result = mergeDiscussion(
+      baseAlbum,
+      [
+        { member: aliceMember, tags: aliceTags, notes: 'first' },
+        { member: alice2,      tags: { '1': 'Cut' }, notes: 'second' },
+      ],
+      '2024-06-15T20:00:00Z',
+    )
+    expect(Object.keys(result.members)).toHaveLength(1)
+    expect(result.members['Alice'].notes).toBe('second')
+    expect(result.members['Alice'].tags).toEqual({ '1': 'Cut' })
   })
 })

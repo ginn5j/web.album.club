@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tagsPath, notesPath, discussionPath } from '../config'
+import { tagsPath, notesPath, discussionPath, MB_RATE_LIMIT_MS, MB_DEBOUNCE_MS } from '../config'
 
 describe('tagsPath', () => {
   it('returns the correct path for a simple id', () => {
@@ -36,5 +36,14 @@ describe('discussionPath', () => {
 
   it('interpolates the album id verbatim', () => {
     expect(discussionPath('my-album-2024')).toBe('discussions/my-album-2024.json')
+  })
+})
+
+describe('MusicBrainz timing constants', () => {
+  it('MB_RATE_LIMIT_MS is 1100', () => {
+    expect(MB_RATE_LIMIT_MS).toBe(1100)
+  })
+  it('MB_DEBOUNCE_MS is 500', () => {
+    expect(MB_DEBOUNCE_MS).toBe(500)
   })
 })
