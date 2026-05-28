@@ -78,5 +78,5 @@ GRANT SELECT, INSERT, UPDATE, DELETE  ON wishlists       TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE  ON member_settings TO authenticated;
 
 -- service_role grants are NOT included here. They are only needed temporarily
--- for the one-time data migration. See supabase/scripts/grant_migration.sql
--- and supabase/scripts/revoke_migration.sql.
+-- for the one-time data migration. See supabase/migration/grant_migration.sql
+-- and supabase/migration/revoke_migration.sql.

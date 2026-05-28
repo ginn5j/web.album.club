@@ -47,9 +47,9 @@ A small-group music listening club app — like a book club, but for albums. Mem
 Run the migration files against your project (Dashboard → SQL Editor, or Supabase CLI):
 
 ```
-supabase/migrations/001_initial.sql   # Tables
-supabase/migrations/002_rls.sql       # Row-Level Security policies + grants
-supabase/migrations/003_realtime.sql  # Enable Realtime on albums + reveals
+supabase/setup/001_initial.sql   # Tables
+supabase/setup/002_rls.sql       # Row-Level Security policies + grants
+supabase/setup/003_realtime.sql  # Enable Realtime on albums + reveals
 ```
 
 ### 3. Enable email authentication
@@ -167,7 +167,7 @@ If your club was previously running the GitHub-backed version of this app, use t
 The migration page writes data on behalf of other members, which the normal `authenticated` role cannot do (RLS restricts each user to their own rows). Run this once in the Supabase SQL Editor:
 
 ```
-supabase/scripts/grant_migration.sql
+supabase/migration/grant_migration.sql
 ```
 
 **Step 2 — Run the migration**
@@ -193,7 +193,7 @@ Check a few tables in the Supabase Dashboard → Table Editor:
 Once you are satisfied the migration is complete, remove the temporary grants:
 
 ```
-supabase/scripts/revoke_migration.sql
+supabase/migration/revoke_migration.sql
 ```
 
 The app never uses the service role key during normal operation. Revoking these privileges means a leaked or misused service key cannot read or modify app data through the REST API.
@@ -273,11 +273,11 @@ src/
 │   └── ...                  # Album, Discussion, Wishlist, Settings, etc.
 └── components/          # Shared UI components
 supabase/
-├── migrations/
+├── setup/
 │   ├── 001_initial.sql  # All tables
 │   ├── 002_rls.sql      # Row-Level Security policies + authenticated grants
 │   └── 003_realtime.sql # Enable Realtime publication for albums + reveals
-└── scripts/
+└── migration/
     ├── grant_migration.sql   # Run before /migrate — temporary service_role access
     └── revoke_migration.sql  # Run after /migrate — removes service_role access
 ```
