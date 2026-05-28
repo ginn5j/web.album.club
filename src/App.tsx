@@ -15,7 +15,6 @@ import { DiscussionViewPage } from './pages/DiscussionViewPage'
 import { AboutPage } from './pages/AboutPage'
 import { SignInPage } from './pages/SignInPage'
 import { OnboardingPage } from './pages/OnboardingPage'
-import { MigrationPage } from './pages/MigrationPage'
 import { useAuth } from './lib/auth/AuthContext'
 import { useRealtimeAlbum } from './hooks/useRealtimeAlbum'
 import { backend } from './lib/backends'
@@ -182,7 +181,6 @@ export function App() {
           <Route path="/discussions/:albumId/edit" element={<DiscussionEditPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/migrate" element={<MigrationPage />} />
         </Routes>
       </main>
 

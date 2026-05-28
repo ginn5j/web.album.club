@@ -4,8 +4,7 @@ A small-group music listening club app — like a book club, but for albums. Mem
 
 **Backend:** Supabase (Postgres + Auth + Realtime). No GitHub API calls during normal use.
 
-**Live preview (dev branch):** https://ginn5j.github.io/album-club-next  
-**Live app (stable):** https://ginn5j.github.io/album-club
+**Live app:** https://ginn5j.github.io/album-club
 
 ---
 
@@ -141,85 +140,14 @@ The Publish PAT is the only GitHub credential in the new version. It is stored i
 - Each member maintains a private wishlist of albums to suggest
 - Items can have personal notes, be reordered by drag-and-drop, and be promoted to the current album
 
-### Data migration from GitHub
-- If your club previously used the GitHub-backed version of this app, the `/migrate` route (admin only) reads your old `album-club` repo and writes everything to Supabase
-- All operations are idempotent — safe to re-run
-- Members must have signed in at least once before migration so their Supabase user IDs exist
-- See [Data migration from GitHub](#data-migration-from-github-1) below for the full procedure
-
----
-
-## Data migration from GitHub
-
-If your club was previously running the GitHub-backed version of this app, use the admin-only `/migrate` page to move all data to Supabase. All writes are idempotent — it is safe to re-run.
-
-### Before you start
-
-1. Every member must sign in to the new app at least once and complete onboarding (choose a display name) so their Supabase `user_id` exists.
-2. Each member's chosen display name must match the `name` field in `settings/members.json` from the old repo. The `branch` field is used separately to locate their private data and may differ from their display name.
-3. Prepare a GitHub PAT with **read** access to the old `album-club` repo and all member branches.
-4. Have your Supabase **service role key** ready (Project Settings → API → `service_role`). It is entered directly in the browser and is only sent to your own Supabase project — it is not stored anywhere.
-
-### Migration procedure
-
-**Step 1 — Grant temporary service_role access**
-
-The migration page writes data on behalf of other members, which the normal `authenticated` role cannot do (RLS restricts each user to their own rows). Run this once in the Supabase SQL Editor:
-
-```
-supabase/migration/grant_migration.sql
-```
-
-**Step 2 — Run the migration**
-
-Sign in as the admin, navigate to `/#/migrate`, and fill in:
-- GitHub PAT (read-only is fine)
-- Old repo owner and repo name
-- Supabase service role key
-
-Click **Run Migration**. Each step shows ✓ on success or ✗ with the error message on failure. Fix any errors and re-run — everything is idempotent.
-
-**Step 3 — Verify the data**
-
-Check a few tables in the Supabase Dashboard → Table Editor:
-- `members` — all members present
-- `albums` — current album and history
-- `discussions` — all past discussions
-- `wishlists` — one row per member with their items
-- `tags` / `notes` — rows for each member × album
-
-**Step 4 — Revoke service_role access**
-
-Once you are satisfied the migration is complete, remove the temporary grants:
-
-```
-supabase/migration/revoke_migration.sql
-```
-
-The app never uses the service role key during normal operation. Revoking these privileges means a leaked or misused service key cannot read or modify app data through the REST API.
-
 ---
 
 ## Deployment
 
-### Development branch → `/album-club-next`
-
-Every push to `claude/supabase-cloud-migration-vCHBP` triggers `.github/workflows/deploy-preview.yml`, which:
+Every push to `main` triggers `.github/workflows/deploy.yml`, which:
 1. Runs tests
-2. Builds with `VITE_BASE_URL=/album-club-next` plus the Supabase env vars
-3. Deploys to the `album-club-next` directory of `ginn5j/ginn5j.github.io`
-
-### Stable branch → `/album-club`
-
-The `main` branch and its workflow (`deploy.yml`) are unchanged and continue to serve the GitHub-backed version at `/album-club`.
-
-### Cutover (when the new version is ready)
-
-1. Merge the dev branch to `main`
-2. Update `deploy.yml` to add the Supabase env vars
-3. Delete `deploy-preview.yml` (or repurpose it)
-4. Update the Supabase Site URL and Redirect URLs to the production URL
-5. Run the data migration, then remove the `/migrate` route
+2. Builds with `VITE_BASE_URL=/album-club` and the Supabase env vars (secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`)
+3. Deploys to the `album-club` directory of `ginn5j/ginn5j.github.io`
 
 ---
 
@@ -247,7 +175,7 @@ npm test           # run test suite
 src/
 ├── types/               # TypeScript interfaces (album, member, discussion, wishlist)
 ├── data/                # Static content (changelog)
-├── constants/config.ts  # MusicBrainz URLs, path helpers; legacy GitHub constants kept for MigrationPage
+├── constants/config.ts  # MusicBrainz URLs and timing constants; legacy GitHub path helpers (used by github/ lib)
 ├── lib/
 │   ├── backends/        # BackendProvider interface + Supabase implementation
 │   │   ├── types.ts         # StorageProvider, RealtimeProvider, BackendProvider
@@ -257,7 +185,7 @@ src/
 │   │   ├── types.ts         # AuthProviderConfig interface
 │   │   ├── AuthContext.tsx  # React context + useAuth hook
 │   │   └── providers/       # emailMagicLink.ts, index.ts
-│   ├── github/          # Octokit client + file helpers (Jekyll publishing + migration only)
+│   ├── github/          # Octokit client + file helpers (Jekyll publishing only)
 │   ├── musicbrainz/     # Rate-limited MusicBrainz client
 │   ├── merge/           # Discussion merger; Jekyll post generator
 │   └── settings.ts      # localStorage helpers (kept for legacy settings.test.ts)
@@ -271,7 +199,6 @@ src/
 ├── pages/               # Route-level page components
 │   ├── SignInPage.tsx       # Email magic link sign-in form
 │   ├── OnboardingPage.tsx   # Display name form on first sign-in
-│   ├── MigrationPage.tsx    # Admin-only /migrate route
 │   └── ...                  # Album, Discussion, Wishlist, Settings, etc.
 └── components/          # Shared UI components
 supabase/
