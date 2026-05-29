@@ -107,7 +107,7 @@ export function SettingsPage() {
           value={outputPostsPath}
           onChange={(e) => setOutputPostsPath(e.target.value)}
           placeholder="_posts/{{year}}/{{month}}"
-          hint="Supports variables: {{year}}, {{month}}, {{day}}, {{artist_slug}}, {{title_slug}}. Example: _posts/{{year}}"
+          hint="Supports variables: {{year}}, {{month}}, {{day}}, {{artist_slug}}, {{title_slug}}. Without variables, all posts are placed directly in this folder. Example: _posts/{{year}}"
         />
         <Input
           label="Branch"
