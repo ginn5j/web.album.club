@@ -14,7 +14,7 @@ export function SettingsPage() {
 
   const [outputOwner, setOutputOwner] = useState('')
   const [outputRepo, setOutputRepo] = useState('')
-  const [outputPostsPath, setOutputPostsPath] = useState('_posts/albums')
+  const [outputPostsPath, setOutputPostsPath] = useState('_posts/{{year}}/{{month}}')
   const [outputBranch, setOutputBranch] = useState('main')
   const [publishPat, setPublishPat] = useState('')
   const [outputTemplate, setOutputTemplate] = useState('')
@@ -106,7 +106,8 @@ export function SettingsPage() {
           label="Posts path"
           value={outputPostsPath}
           onChange={(e) => setOutputPostsPath(e.target.value)}
-          placeholder="_posts/albums"
+          placeholder="_posts/{{year}}/{{month}}"
+          hint="Supports variables: {{year}}, {{month}}, {{day}}, {{artist_slug}}, {{title_slug}}. Example: _posts/{{year}}"
         />
         <Input
           label="Branch"

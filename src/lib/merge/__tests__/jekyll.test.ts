@@ -30,20 +30,34 @@ const baseDiscussion: DiscussionData = {
 // ── generateJekyllFilename ───────────────────────────────────────────────────
 
 describe('generateJekyllFilename', () => {
-  it('produces the correct year/month/date-artist-title slug', () => {
-    expect(generateJekyllFilename(baseDiscussion, '_posts', PUBLISH_DATE)).toBe(
+  it('produces the correct year/month/date-artist-title slug with template path', () => {
+    expect(generateJekyllFilename(baseDiscussion, '_posts/{{year}}/{{month}}', PUBLISH_DATE)).toBe(
       '_posts/2024/06/2024-06-15-radiohead-ok-computer.md',
     )
   })
 
   it('uses only the date portion (YYYY-MM-DD) of the publish date', () => {
     const d = { ...baseDiscussion }
-    expect(generateJekyllFilename(d, '_posts', '2023-12-31T23:59:59Z')).toContain('2023-12-31')
+    expect(
+      generateJekyllFilename(d, '_posts/{{year}}/{{month}}', '2023-12-31T23:59:59Z'),
+    ).toContain('2023-12-31')
   })
 
-  it('places files under year/month subdirectories', () => {
-    expect(generateJekyllFilename(baseDiscussion, '_posts', '2023-12-31T23:59:59Z')).toMatch(
-      /^_posts\/2023\/12\//,
+  it('places files under year/month subdirectories when path uses {{year}}/{{month}}', () => {
+    expect(
+      generateJekyllFilename(baseDiscussion, '_posts/{{year}}/{{month}}', '2023-12-31T23:59:59Z'),
+    ).toMatch(/^_posts\/2023\/12\//)
+  })
+
+  it('supports year-only path template (no month subdir)', () => {
+    expect(generateJekyllFilename(baseDiscussion, '_posts/{{year}}', PUBLISH_DATE)).toBe(
+      '_posts/2024/2024-06-15-radiohead-ok-computer.md',
+    )
+  })
+
+  it('supports a flat path with no template variables', () => {
+    expect(generateJekyllFilename(baseDiscussion, '_posts', PUBLISH_DATE)).toBe(
+      '_posts/2024-06-15-radiohead-ok-computer.md',
     )
   })
 

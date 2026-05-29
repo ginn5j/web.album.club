@@ -104,7 +104,7 @@ Any member who wants to publish discussions to a Jekyll blog configures it in **
 |-------|-------------|
 | Blog repo owner | GitHub username or org that owns the blog repo |
 | Blog repo name | Repo name (e.g. `alice.github.io`) |
-| Posts path | Directory for posts (e.g. `_posts/albums`) |
+| Posts path | Directory for posts — supports `{{year}}`, `{{month}}`, `{{day}}`, `{{artist_slug}}`, `{{title_slug}}` variables (e.g. `_posts/{{year}}/{{month}}`) |
 | Branch | Target branch (usually `main`) |
 | Publish PAT | GitHub PAT with `Contents: Read and write` on the blog repo |
 

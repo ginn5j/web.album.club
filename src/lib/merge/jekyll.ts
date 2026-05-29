@@ -98,6 +98,11 @@ function buildTemplateVars(
     notes: notesSections,
     discussed_line: `Discussed on ${dateLong}. Picked by ${pickedByName}.`,
     tag_legend: tagLegend,
+    year,
+    month,
+    day,
+    artist_slug: artistSlug,
+    title_slug: titleSlug,
   }
 }
 
@@ -110,12 +115,10 @@ export function generateJekyllFilename(
   postsPath: string,
   publishDate: string,
 ): string {
-  const year = publishDate.slice(0, 4)
-  const month = publishDate.slice(5, 7)
-  const day = publishDate.slice(8, 10)
-  const artistSlug = slugify(discussion.album.artist)
-  const titleSlug = slugify(discussion.album.title)
-  return `${postsPath}/${year}/${month}/${year}-${month}-${day}-${artistSlug}-${titleSlug}.md`
+  const vars = buildTemplateVars(discussion, publishDate)
+  const interpolatedPath = applyTemplate(postsPath, vars)
+  const filename = `${vars.year}-${vars.month}-${vars.day}-${vars.artist_slug}-${vars.title_slug}.md`
+  return `${interpolatedPath}/${filename}`
 }
 
 export function generateJekyllPost(
