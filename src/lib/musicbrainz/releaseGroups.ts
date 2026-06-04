@@ -106,7 +106,8 @@ export async function getReleasesByGroup(releaseGroupMbid: string): Promise<Rele
   if (!res.ok) throw new Error(`MusicBrainz release list failed: ${res.status}`)
   const data: MBReleaseListResponse = await res.json()
 
-  return (data.releases ?? []).map((r) => {
+  return (data.releases ?? [])
+    .map((r) => {
     const media = r.media ?? []
 
     const formatGroups: Record<string, number> = {}
@@ -142,4 +143,10 @@ export async function getReleasesByGroup(releaseGroupMbid: string): Promise<Rele
       tracks,
     }
   })
+    .sort((a, b) => {
+      if (a.date === undefined && b.date === undefined) return 0
+      if (a.date === undefined) return 1
+      if (b.date === undefined) return -1
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+    })
 }

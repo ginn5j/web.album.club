@@ -268,6 +268,17 @@ describe('getReleasesByGroup', () => {
     expect(url).toContain('my-rg-mbid')
   })
 
+  it('sorts releases by date ascending, undated releases last', async () => {
+    const releases = [
+      { id: 'newest', title: 'Newest', date: '2010-01-01', media: [] },
+      { id: 'undated', title: 'Undated', media: [] },
+      { id: 'oldest', title: 'Oldest', date: '1970-06-01', media: [] },
+    ]
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases }))
+    const results = await getReleasesByGroup('rg-mbid')
+    expect(results.map((r) => r.mbid)).toEqual(['oldest', 'newest', 'undated'])
+  })
+
   it('throws when the response is not OK', async () => {
     mockMbFetch.mockResolvedValueOnce(makeErrorResponse(503))
     await expect(getReleasesByGroup('rg-mbid')).rejects.toThrow('503')
