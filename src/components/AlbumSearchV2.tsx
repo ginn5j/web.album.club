@@ -3,9 +3,15 @@ import { ChevronRight, ChevronDown, X } from 'lucide-react'
 import { useArtistSearch } from '../hooks/useArtistSearch'
 import { useReleaseGroupSearch } from '../hooks/useReleaseGroupSearch'
 import { getReleasesByGroup } from '../lib/musicbrainz/releaseGroups'
+import { lookupRelease } from '../lib/musicbrainz/lookup'
 import { Spinner } from './ui/Spinner'
 import type { ArtistResult } from '../lib/musicbrainz/artists'
 import type { ReleaseGroupResult, ReleaseInGroup } from '../lib/musicbrainz/releaseGroups'
+import type { AlbumInfo, Song } from '../types/album'
+
+interface AlbumSearchV2Props {
+  onSelect?: (album: AlbumInfo, songs: Song[], source: 'musicbrainz' | 'manual') => void
+}
 
 function formatDuration(ms: number): string {
   const total = Math.round(ms / 1000)
@@ -14,7 +20,7 @@ function formatDuration(ms: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-export function AlbumSearchV2() {
+export function AlbumSearchV2({ onSelect }: AlbumSearchV2Props = {}) {
   const [artistQuery, setArtistQuery] = useState('')
   const [selectedArtist, setSelectedArtist] = useState<ArtistResult | null>(null)
   const [showArtistDropdown, setShowArtistDropdown] = useState(false)
@@ -28,6 +34,8 @@ export function AlbumSearchV2() {
   const [releasesError, setReleasesError] = useState<string | null>(null)
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [lookingUpId, setLookingUpId] = useState<string | null>(null)
+  const [lookupError, setLookupError] = useState<string | null>(null)
 
   const { results: artistResults, loading: artistLoading } = useArtistSearch(
     selectedArtist ? '' : artistQuery,
@@ -110,6 +118,20 @@ export function AlbumSearchV2() {
     setReleases([])
     setReleasesError(null)
     setExpandedIds(new Set())
+  }
+
+  async function handleSelectRelease(mbid: string) {
+    if (!onSelect) return
+    setLookingUpId(mbid)
+    setLookupError(null)
+    try {
+      const { album, songs } = await lookupRelease(mbid)
+      onSelect(album, songs, 'musicbrainz')
+    } catch (e) {
+      setLookupError(e instanceof Error ? e.message : 'Failed to load release details')
+    } finally {
+      setLookingUpId(null)
+    }
   }
 
   function toggleRelease(mbid: string) {
@@ -240,6 +262,7 @@ export function AlbumSearchV2() {
         </div>
       )}
       {releasesError && <p className="text-sm text-red-600">{releasesError}</p>}
+      {lookupError && <p className="text-sm text-red-600">{lookupError}</p>}
       {!loadingReleases && releases.length > 0 && (
         <div className="divide-y divide-gray-100 rounded-md border border-gray-200 bg-white shadow-sm">
           {releases.map((release) => {
@@ -272,6 +295,22 @@ export function AlbumSearchV2() {
                     <span>{release.trackCount} tracks</span>
                     {release.country && <span>{release.country}</span>}
                   </div>
+                  {onSelect && (
+                    <div className="shrink-0 ml-2">
+                      {lookingUpId === release.mbid ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <button
+                          className="rounded px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-40"
+                          type="button"
+                          disabled={lookingUpId !== null}
+                          onClick={() => handleSelectRelease(release.mbid)}
+                        >
+                          Select
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {expanded && (
                   <div className="divide-y divide-gray-100 border-t border-gray-100 bg-gray-50">

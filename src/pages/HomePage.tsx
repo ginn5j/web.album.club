@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Disc3, MessageSquare, ListMusic, Star } from 'lucide-react'
 import { Button } from '../components/ui/Button'
-import { AlbumSearch } from '../components/AlbumSearch'
+import { AlbumPicker } from '../components/AlbumPicker'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { backend } from '../lib/backends'
@@ -183,7 +183,7 @@ export function HomePage({ currentAlbum, loading, albumError, onAlbumPicked }: H
               <Spinner size="sm" /> Saving...
             </div>
           ) : (
-            <AlbumSearch onSelect={handleAlbumSelected} />
+            <AlbumPicker onSelect={handleAlbumSelected} />
           )}
           <Button variant="ghost" size="sm" onClick={() => setPicking(false)}>
             Cancel
