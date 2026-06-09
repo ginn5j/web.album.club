@@ -4,7 +4,7 @@ import { ArrowLeft, Save } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
-import { AlbumSearch } from '../components/AlbumSearch'
+import { AlbumPicker } from '../components/AlbumPicker'
 import { backend } from '../lib/backends'
 import type { DiscussionData, MemberDiscussionData, TagValue } from '../types/discussion'
 import type { AlbumInfo, Song } from '../types/album'
@@ -137,7 +137,7 @@ export function DiscussionEditPage() {
       {!album ? (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-700">Album</h3>
-          <AlbumSearch onSelect={handleAlbumSelected} />
+          <AlbumPicker onSelect={handleAlbumSelected} />
         </div>
       ) : (
         <div className="flex gap-3 items-center bg-gray-50 rounded-lg p-3">

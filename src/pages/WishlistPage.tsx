@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Plus, ListMusic } from 'lucide-react'
 import { Button } from '../components/ui/Button'
-import { AlbumSearch } from '../components/AlbumSearch'
+import { AlbumPicker } from '../components/AlbumPicker'
 import { WishlistItem as WishlistItemComponent } from '../components/WishlistItem'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { Spinner } from '../components/ui/Spinner'
@@ -129,7 +129,7 @@ export function WishlistPage({ onAlbumPicked }: WishlistPageProps) {
       {adding && (
         <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
           <h3 className="font-semibold text-gray-900">Add to Wishlist</h3>
-          <AlbumSearch onSelect={handleSelect} />
+          <AlbumPicker onSelect={handleSelect} />
           <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
             Cancel
           </Button>
