@@ -6,7 +6,9 @@ import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { backend } from '../lib/backends'
 import { useAuth } from '../lib/auth/AuthContext'
 import { DEFAULT_TEMPLATE } from '../lib/merge/jekyll'
+import { loadSearchStyle, saveSearchStyle } from '../lib/settings'
 import type { MemberSettingsData } from '../lib/backends/types'
+import type { SearchStyle } from '../lib/settings'
 
 export function SettingsPage() {
   const { member, session, signOut } = useAuth()
@@ -19,6 +21,7 @@ export function SettingsPage() {
   const [publishPat, setPublishPat] = useState('')
   const [outputTemplate, setOutputTemplate] = useState('')
   const [showVarsRef, setShowVarsRef] = useState(false)
+  const [searchStyle, setSearchStyle] = useState<SearchStyle>(() => loadSearchStyle())
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -80,6 +83,42 @@ export function SettingsPage() {
           <LogOut className="h-4 w-4" />
           Sign out
         </Button>
+      </div>
+
+      {/* Search style preference */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold text-gray-900">Search Style</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Default search style when picking an album. Saved automatically.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          {(
+            [
+              { value: 'artist-release', label: 'Artist / Release', description: 'Search by artist, then release group, then pick a specific release.' },
+              { value: 'query', label: 'Query Search', description: 'Free-text search with optional filters for country, year, and format.' },
+            ] as { value: SearchStyle; label: string; description: string }[]
+          ).map(({ value, label, description }) => (
+            <label key={value} className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="radio"
+                name="searchStyle"
+                value={value}
+                checked={searchStyle === value}
+                onChange={() => {
+                  setSearchStyle(value)
+                  saveSearchStyle(value)
+                }}
+                className="mt-0.5 accent-indigo-600"
+              />
+              <span>
+                <span className="text-sm font-medium text-gray-900">{label}</span>
+                <span className="block text-xs text-gray-500">{description}</span>
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* Blog output config */}
