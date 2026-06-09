@@ -4,6 +4,8 @@ import {
   saveLocalSettings,
   isSettingsComplete,
   clearLocalSettings,
+  loadSearchStyle,
+  saveSearchStyle,
 } from './settings'
 
 // jsdom provides localStorage via vitest environment: 'jsdom'
@@ -133,5 +135,27 @@ describe('clearLocalSettings', () => {
   it('is a no-op when nothing has been saved', () => {
     expect(() => clearLocalSettings()).not.toThrow()
     expect(loadLocalSettings()).toEqual({})
+  })
+})
+
+describe('loadSearchStyle / saveSearchStyle', () => {
+  it('returns artist-release when nothing is stored', () => {
+    expect(loadSearchStyle()).toBe('artist-release')
+  })
+
+  it('returns query after saving query', () => {
+    saveSearchStyle('query')
+    expect(loadSearchStyle()).toBe('query')
+  })
+
+  it('returns artist-release after saving artist-release', () => {
+    saveSearchStyle('query')
+    saveSearchStyle('artist-release')
+    expect(loadSearchStyle()).toBe('artist-release')
+  })
+
+  it('returns artist-release for an unexpected stored value', () => {
+    localStorage.setItem('searchStyle', 'bogus')
+    expect(loadSearchStyle()).toBe('artist-release')
   })
 })

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlbumSearch } from './AlbumSearch'
 import { AlbumSearchV2 } from './AlbumSearchV2'
+import { loadSearchStyle, saveSearchStyle } from '../lib/settings'
 import type { AlbumInfo, Song } from '../types/album'
 
 interface AlbumPickerProps {
@@ -8,14 +9,14 @@ interface AlbumPickerProps {
 }
 
 export function AlbumPicker({ onSelect }: AlbumPickerProps) {
-  const [useV2, setUseV2] = useState(true)
+  const [useV2, setUseV2] = useState(() => loadSearchStyle() !== 'query')
 
   return (
     <div className="space-y-3">
       <div className="flex gap-1">
         <button
           type="button"
-          onClick={() => setUseV2(true)}
+          onClick={() => { saveSearchStyle('artist-release'); setUseV2(true) }}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             useV2
               ? 'bg-indigo-50 text-indigo-600'
@@ -26,7 +27,7 @@ export function AlbumPicker({ onSelect }: AlbumPickerProps) {
         </button>
         <button
           type="button"
-          onClick={() => setUseV2(false)}
+          onClick={() => { saveSearchStyle('query'); setUseV2(false) }}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             !useV2
               ? 'bg-indigo-50 text-indigo-600'
