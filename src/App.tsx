@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
-import { Disc3, Star, MessageSquare, ListMusic, BookOpen, Settings, Home, Info, Search } from 'lucide-react'
+import { Disc3, Star, MessageSquare, ListMusic, BookOpen, Settings, Home, Info } from 'lucide-react'
 import { ToastContainer, type ToastMessage } from './components/ui/Toast'
 import { Spinner } from './components/ui/Spinner'
 import { ErrorBanner } from './components/ui/ErrorBanner'
@@ -13,7 +13,6 @@ import { DiscussionsListPage } from './pages/DiscussionsListPage'
 import { DiscussionEditPage } from './pages/DiscussionEditPage'
 import { DiscussionViewPage } from './pages/DiscussionViewPage'
 import { AboutPage } from './pages/AboutPage'
-import { SearchV2Page } from './pages/SearchV2Page'
 import { SignInPage } from './pages/SignInPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { useAuth } from './lib/auth/AuthContext'
@@ -90,7 +89,6 @@ export function App() {
     { to: '/discuss', label: 'Discuss', icon: MessageSquare },
     { to: '/wishlist', label: 'Wishlist', icon: ListMusic },
     { to: '/discussions', label: 'Archive', icon: BookOpen },
-    { to: '/search', label: 'Search', icon: Search },
   ]
 
   return (
@@ -181,7 +179,6 @@ export function App() {
           <Route path="/discussions/new" element={<DiscussionEditPage />} />
           <Route path="/discussions/:albumId" element={<DiscussionViewPage />} />
           <Route path="/discussions/:albumId/edit" element={<DiscussionEditPage />} />
-          <Route path="/search" element={<SearchV2Page />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
