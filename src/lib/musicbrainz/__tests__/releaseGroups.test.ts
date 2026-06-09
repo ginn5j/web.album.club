@@ -268,7 +268,18 @@ describe('getReleasesByGroup', () => {
     expect(url).toContain('my-rg-mbid')
   })
 
-  it('sorts releases by date ascending, undated releases last', async () => {
+  it('sorts releases by date ascending, empty-string undated releases last', async () => {
+    const releases = [
+      { id: 'newest', title: 'Newest', date: '2010-01-01', media: [] },
+      { id: 'undated', title: 'Undated', date: '', media: [] },
+      { id: 'oldest', title: 'Oldest', date: '1970-06-01', media: [] },
+    ]
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases }))
+    const results = await getReleasesByGroup('rg-mbid')
+    expect(results.map((r) => r.mbid)).toEqual(['oldest', 'newest', 'undated'])
+  })
+
+  it('sorts releases by date ascending, undefined undated releases last', async () => {
     const releases = [
       { id: 'newest', title: 'Newest', date: '2010-01-01', media: [] },
       { id: 'undated', title: 'Undated', media: [] },
@@ -277,6 +288,28 @@ describe('getReleasesByGroup', () => {
     mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases }))
     const results = await getReleasesByGroup('rg-mbid')
     expect(results.map((r) => r.mbid)).toEqual(['oldest', 'newest', 'undated'])
+  })
+
+  it('sorts year-only dates after full dates in the same year', async () => {
+    const releases = [
+      { id: 'year-only', title: 'Year only', date: '1997', media: [] },
+      { id: 'nov', title: 'November', date: '1997-11-04', media: [] },
+      { id: 'mar', title: 'March', date: '1997-03-15', media: [] },
+    ]
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases }))
+    const results = await getReleasesByGroup('rg-mbid')
+    expect(results.map((r) => r.mbid)).toEqual(['mar', 'nov', 'year-only'])
+  })
+
+  it('sorts year-month dates after full dates in the same month', async () => {
+    const releases = [
+      { id: 'month-only', title: 'Month only', date: '1997-05', media: [] },
+      { id: 'late', title: 'Late May', date: '1997-05-21', media: [] },
+      { id: 'early', title: 'Early May', date: '1997-05-05', media: [] },
+    ]
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ releases }))
+    const results = await getReleasesByGroup('rg-mbid')
+    expect(results.map((r) => r.mbid)).toEqual(['early', 'late', 'month-only'])
   })
 
   it('throws when the response is not OK', async () => {

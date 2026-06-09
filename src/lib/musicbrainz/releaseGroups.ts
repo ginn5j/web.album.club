@@ -98,6 +98,12 @@ export async function searchReleaseGroups(
   })
 }
 
+function normalizeDateForSort(date: string): string {
+  if (date.length === 4) return `${date}-12-31`
+  if (date.length === 7) return `${date}-31`
+  return date
+}
+
 export async function getReleasesByGroup(releaseGroupMbid: string): Promise<ReleaseInGroup[]> {
   const url =
     `${MUSICBRAINZ_API_BASE}/release` +
@@ -144,9 +150,11 @@ export async function getReleasesByGroup(releaseGroupMbid: string): Promise<Rele
     }
   })
     .sort((a, b) => {
-      if (a.date === undefined && b.date === undefined) return 0
-      if (a.date === undefined) return 1
-      if (b.date === undefined) return -1
-      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+      if (!a.date && !b.date) return 0
+      if (!a.date) return 1
+      if (!b.date) return -1
+      const da = normalizeDateForSort(a.date)
+      const db = normalizeDateForSort(b.date)
+      return da < db ? -1 : da > db ? 1 : 0
     })
 }
