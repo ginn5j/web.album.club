@@ -115,7 +115,17 @@ The Publish PAT is the only GitHub credential in the new version. It is stored i
 ## Features
 
 ### Album picker
-- Search MusicBrainz by title/artist with optional country, year, and format filters; track list and cover art are fetched automatically
+
+Two search styles are available and can be toggled inline or set as a default in **Settings → Search Style**:
+
+| Style | Description |
+|-------|-------------|
+| **Artist / Release** (default) | Guided three-step flow: search for an artist, then browse their release groups, then choose a specific release. Results are sorted chronologically; releases with missing dates appear at the end. |
+| **Query Search** | Free-text search with optional filters for country, year, and format — good for searching by album title when the artist isn't known. |
+
+Both styles pull track lists and cover art from MusicBrainz automatically. The chosen style is saved to `localStorage` so it persists across sessions.
+
+Additional picker features:
 - Manual entry for albums not in MusicBrainz
 - Any member can pick the current album; all other members see a real-time notification immediately (no polling)
 - A confirmation is required before replacing an undiscussed current album
@@ -192,7 +202,9 @@ src/
 ├── hooks/               # React hooks
 │   ├── useRealtimeAlbum.ts  # Supabase Realtime subscription for current album
 │   ├── useRealtimeReveal.ts # Supabase Realtime subscription for reveal events
-│   ├── useMusicBrainz.ts    # Debounced MusicBrainz search with 500ms delay
+│   ├── useMusicBrainz.ts    # Debounced MusicBrainz search with 500ms delay (Query Search style)
+│   ├── useArtistSearch.ts   # Debounced artist autocomplete (Artist/Release style)
+│   ├── useReleaseGroupSearch.ts # Debounced release-group autocomplete (Artist/Release style)
 │   ├── useSongTags.ts       # Read/write tags via backend.storage
 │   ├── useNotes.ts          # Read/write notes via backend.storage (2s auto-save)
 │   └── useWishlist.ts       # Read/write wishlist via backend.storage
