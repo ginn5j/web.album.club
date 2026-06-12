@@ -64,6 +64,8 @@ Album Club is a SPA where small groups listen to music together. Members private
 
 ## Important Patterns
 
+- **Changelog is manual:** the About page changelog is the hardcoded array in `src/data/changelog.ts`. When making a user-visible change, add or extend an entry there (newest first, `YYYY-MM-DD`).
+
 - **MusicBrainz:** 1.1s rate limit enforced in `musicbrainz/client.ts`; 500ms debounce on search input
 - **Album swap:** `setCurrentAlbum` deletes the previous current album unless it has a discussion (prevents abandoned albums accumulating)
 - **Album IDs are per-pick, not per-release:** `buildCurrentAlbum` appends a random suffix to the MBID/slug. `tags`/`notes`/`reveals`/`discussions` key on this id with no FK cleanup, so reusing an id across rounds would resurface stale rows (worst case: an old reveal instantly unmasks the new round)

@@ -6,6 +6,78 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: '2026-06-12',
+    title: 'Reliability fixes',
+    items: [
+      'Fix stale reveal instantly unmasking a newly re-picked album',
+      'Fix a case where saved notes could be lost',
+      'Fix onboarding resetting an existing member’s role',
+      'Fix discussion merge race so two clients can’t write conflicting snapshots',
+      'Run lint, tests, and build on every pull request',
+    ],
+  },
+  {
+    date: '2026-06-09',
+    title: 'New artist + release search',
+    items: [
+      'Two-field Artist + Release search: pick an artist, then browse their releases',
+      'Release rows show format, track count, and country, with expandable per-track detail',
+      'Releases sorted by date, including partial dates',
+      'Choose your preferred search style in Settings (saved across sessions)',
+    ],
+  },
+  {
+    date: '2026-05-29',
+    title: 'Customizable blog posts path',
+    items: [
+      'Jekyll posts path can include {{variable}} templates',
+    ],
+  },
+  {
+    date: '2026-05-28',
+    title: 'Supabase backend',
+    items: [
+      'Storage moved from a GitHub repo to Supabase (Postgres + Auth + Realtime)',
+      'Sign in with an email magic link',
+      'Tags and notes stay private until reveal, enforced by row-level security',
+      'Reveals appear live via realtime updates instead of polling',
+      'Undiscussed albums are cleaned up when a new album is picked',
+    ],
+  },
+  {
+    date: '2026-05-09',
+    title: 'Wishlist tidy-up',
+    items: [
+      'Wishlist items are removed automatically when picked as the current album',
+    ],
+  },
+  {
+    date: '2026-04-23',
+    title: 'Wishlist reordering and search filters',
+    items: [
+      'Drag-to-reorder and up/down buttons on the wishlist',
+      'Format filter dropdown on album search',
+      'Confirm before picking a new album while the current one is undiscussed',
+    ],
+  },
+  {
+    date: '2026-03-29',
+    title: 'Search result improvements',
+    items: [
+      'Search results show cover art and format',
+      'Country and year filter inputs',
+      'Results sorted by release year',
+    ],
+  },
+  {
+    date: '2026-03-26',
+    title: 'About page',
+    items: [
+      'Add About page with app summary and this changelog',
+      'Fix stale member settings when publishing right after saving output settings',
+    ],
+  },
+  {
     date: '2026-03-25',
     title: 'Blog publishing improvements',
     items: [
