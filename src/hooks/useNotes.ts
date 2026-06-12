@@ -13,24 +13,31 @@ export function useNotes(userId: string | null, albumId: string | null) {
   // so a flush during an album switch writes to the round that was edited.
   const pendingRef = useRef<{ userId: string; albumId: string; content: string } | null>(null)
 
-  const flush = useCallback(() => {
+  // Resolves true when nothing was pending or the save succeeded, false when
+  // it failed — callers that must not proceed with unsaved notes (reveal)
+  // check the result.
+  const flush = useCallback((): Promise<boolean> => {
     if (timerRef.current) {
       clearTimeout(timerRef.current)
       timerRef.current = null
     }
     const pending = pendingRef.current
-    if (!pending) return
+    if (!pending) return Promise.resolve(true)
     pendingRef.current = null
     setSaving(true)
     setSaved(false)
     setError(null)
-    backend.storage
+    return backend.storage
       .setNotes(pending.userId, pending.albumId, pending.content)
       .then(() => {
         setSaved(true)
         setTimeout(() => setSaved(false), 2000)
+        return true
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to save notes'))
+      .catch((e) => {
+        setError(e instanceof Error ? e.message : 'Failed to save notes')
+        return false
+      })
       .finally(() => setSaving(false))
   }, [])
 
@@ -44,7 +51,7 @@ export function useNotes(userId: string | null, albumId: string | null) {
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load notes'))
     // Cleanup flushes any edit still waiting on the debounce — on unmount
     // (navigation) and before switching albums — so it isn't silently lost.
-    return flush
+    return () => { void flush() }
   }, [userId, albumId, flush])
 
   const onChange = useCallback(
@@ -58,5 +65,5 @@ export function useNotes(userId: string | null, albumId: string | null) {
     [userId, albumId, flush],
   )
 
-  return { notes, onChange, saving, saved, error }
+  return { notes, onChange, flush, saving, saved, error }
 }

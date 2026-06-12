@@ -12,6 +12,10 @@ interface PublishButtonProps {
   discussion: DiscussionData
 }
 
+// The Jekyll filename and permalink are built by slicing fixed positions out
+// of this string, so it must start with a full YYYY-MM-DDTHH:MM:SS timestamp.
+const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+
 export function PublishButton({ discussion }: PublishButtonProps) {
   const { member } = useAuth()
   const [memberSettings, setMemberSettings] = useState<MemberSettingsData | null>(null)
@@ -28,10 +32,10 @@ export function PublishButton({ discussion }: PublishButtonProps) {
       .catch(() => {})
   }, [member?.userId])
 
-  if (!memberSettings?.output) {
+  if (!memberSettings?.output || !memberSettings.publishPat) {
     return (
       <p className="text-sm text-gray-500">
-        Configure your output repo in Settings to publish discussions.
+        Configure your output repo and publish PAT in Settings to publish discussions.
       </p>
     )
   }
@@ -39,14 +43,18 @@ export function PublishButton({ discussion }: PublishButtonProps) {
   const { output } = memberSettings
 
   async function handlePublish() {
-    if (!memberSettings?.output) return
+    if (!memberSettings?.output || !memberSettings.publishPat) return
+    if (!ISO_TIMESTAMP_RE.test(publishDate) || Number.isNaN(Date.parse(publishDate))) {
+      setError('Publish date must be an ISO timestamp like 2026-06-12T09:00:00Z')
+      return
+    }
     setPublishing(true)
     setError(null)
     try {
       const post = generateJekyllPost(discussion, publishDate, output.template)
       const path = generateJekyllFilename(discussion, output.postsPath, publishDate)
       await commitFileToRepo(
-        memberSettings.publishPat ?? '',
+        memberSettings.publishPat,
         output.owner,
         output.repo,
         output.branch,
