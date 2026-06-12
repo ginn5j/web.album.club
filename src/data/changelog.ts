@@ -7,6 +7,21 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-06-12',
+    title: 'Code review fixes',
+    items: [
+      'Fix a reveal by another member sometimes not appearing until refresh',
+      'Fix a failed notes save being silently skipped on the next reveal',
+      'Lock tags and notes once the album is revealed',
+      'Fix slow search responses overwriting results for a newer query',
+      'Fix rapid wishlist edits dropping a change',
+      'Fix backslashes in album/artist names breaking published blog posts',
+      'Display names must now be unique',
+      'Reveal timestamps now come from the server clock',
+      'Friendlier error when two members pick an album at the same time',
+    ],
+  },
+  {
+    date: '2026-06-12',
     title: 'Reliability fixes',
     items: [
       'Save any pending notes before revealing so they can’t be missing from the discussion',

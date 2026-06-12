@@ -160,7 +160,7 @@ export function SettingsPage() {
           value={publishPat}
           onChange={(e) => setPublishPat(e.target.value)}
           placeholder="github_pat_... or ghp_..."
-          hint="GitHub PAT for publishing to your blog repo. Required for Jekyll publishing."
+          hint="GitHub PAT for publishing to your blog repo. Required for Jekyll publishing. Use a fine-grained PAT restricted to the blog repo with Contents read/write only — it is stored in the club database."
         />
 
         {/* Post template */}

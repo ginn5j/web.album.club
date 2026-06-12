@@ -184,6 +184,24 @@ describe('generateJekyllPost', () => {
     expect(post).toContain('album_title: "He said \\"hello\\""')
   })
 
+  it('escapes backslashes in album title', () => {
+    const d: DiscussionData = {
+      ...baseDiscussion,
+      album: { ...baseDiscussion.album, title: 'Slash\\Burn' },
+    }
+    const post = generateJekyllPost(d, PUBLISH_DATE)
+    expect(post).toContain('album_title: "Slash\\\\Burn"')
+  })
+
+  it('escapes a trailing backslash so it cannot eat the closing quote', () => {
+    const d: DiscussionData = {
+      ...baseDiscussion,
+      album: { ...baseDiscussion.album, artist: 'Trailing\\' },
+    }
+    const post = generateJekyllPost(d, PUBLISH_DATE)
+    expect(post).toContain('artist: "Trailing\\\\"')
+  })
+
   it('has correct song ratings table headers', () => {
     const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE)
     expect(post).toContain('| # | Song | Alice | Bob |')

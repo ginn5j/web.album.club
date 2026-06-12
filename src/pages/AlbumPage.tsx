@@ -1,9 +1,11 @@
+import { Link } from 'react-router-dom'
 import { Disc3 } from 'lucide-react'
 import { SongRow } from '../components/SongRow'
 import { NotesEditor } from '../components/NotesEditor'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { useSongTags } from '../hooks/useSongTags'
 import { useNotes } from '../hooks/useNotes'
+import { useRealtimeReveal } from '../hooks/useRealtimeReveal'
 import { useAuth } from '../lib/auth/AuthContext'
 import type { CurrentAlbum } from '../types/album'
 
@@ -24,6 +26,10 @@ export function AlbumPage({ currentAlbum }: AlbumPageProps) {
     userId,
     currentAlbum?.id ?? null,
   )
+
+  // After a reveal the discussion snapshot is already written, so edits here
+  // would save but never be seen — lock the page instead.
+  const { revealed } = useRealtimeReveal(currentAlbum?.id ?? null)
 
   if (!currentAlbum) {
     return (
@@ -60,6 +66,15 @@ export function AlbumPage({ currentAlbum }: AlbumPageProps) {
       {tagError && <ErrorBanner message={tagError} />}
       {notesError && <ErrorBanner message={notesError} />}
 
+      {revealed && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          This album has been revealed — tags and notes are locked.{' '}
+          <Link to="/discuss" className="font-medium underline">
+            View the discussion
+          </Link>
+        </div>
+      )}
+
       {/* Legend */}
       <div className="text-xs text-gray-500 bg-gray-50 rounded px-3 py-2">
         <strong>Starter</strong> = would start a playlist ·{' '}
@@ -75,7 +90,7 @@ export function AlbumPage({ currentAlbum }: AlbumPageProps) {
             song={song}
             tag={tags[String(song.position)]}
             onTag={setTag}
-            disabled={tagSaving}
+            disabled={tagSaving || revealed}
           />
         ))}
       </div>
@@ -88,6 +103,7 @@ export function AlbumPage({ currentAlbum }: AlbumPageProps) {
           onChange={onNotesChange}
           saving={notesSaving}
           saved={notesSaved}
+          disabled={revealed}
         />
       </div>
     </div>

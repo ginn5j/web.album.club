@@ -17,8 +17,10 @@ function formatDateLong(isoString: string): string {
 }
 
 // For values substituted inside double-quoted YAML front matter strings.
+// Backslash must be escaped first — it's YAML's escape character inside
+// double quotes, so a raw one corrupts the string (or eats the closing quote).
 function escapeYamlQuotes(s: string): string {
-  return s.replace(/"/g, '\\"')
+  return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
 export const DEFAULT_TEMPLATE = `---

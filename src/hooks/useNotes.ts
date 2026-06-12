@@ -35,6 +35,10 @@ export function useNotes(userId: string | null, albumId: string | null) {
         return true
       })
       .catch((e) => {
+        // Put the failed edit back so the next flush retries it — otherwise a
+        // later flush would find nothing pending and report success while the
+        // DB still holds stale notes. A newer edit takes precedence.
+        if (!pendingRef.current) pendingRef.current = pending
         setError(e instanceof Error ? e.message : 'Failed to save notes')
         return false
       })
