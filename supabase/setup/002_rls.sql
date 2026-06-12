@@ -1,5 +1,4 @@
 ALTER TABLE members         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE invites         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE albums          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tags            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notes           ENABLE ROW LEVEL SECURITY;
@@ -16,17 +15,13 @@ CREATE FUNCTION is_member() RETURNS boolean LANGUAGE sql SECURITY DEFINER AS
 CREATE FUNCTION is_revealed(p_album_id text) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS
   $$ SELECT EXISTS (SELECT 1 FROM reveals WHERE album_id = p_album_id) $$;
 
--- members: own row always visible (so onboarding can detect new users); all members see all rows
+-- members: own row always visible (so onboarding can detect new users); all members see all rows.
+-- Any authenticated user may insert their own row — new-user admission is
+-- controlled upstream by the Supabase Auth "Disable new user signups" setting
+-- (invite-only via the admin console when ticked). See README.
 CREATE POLICY "members_select" ON members FOR SELECT USING (user_id = auth.uid() OR is_member());
 CREATE POLICY "members_insert" ON members FOR INSERT WITH CHECK (user_id = auth.uid());
 CREATE POLICY "members_update" ON members FOR UPDATE USING (user_id = auth.uid());
-
--- invites: admins create; members read all; unauthenticated can read by token (for acceptance)
-CREATE POLICY "invites_admin_insert" ON invites FOR INSERT
-  WITH CHECK (EXISTS (SELECT 1 FROM members WHERE user_id = auth.uid() AND role = 'admin'));
-CREATE POLICY "invites_select" ON invites FOR SELECT
-  USING (invited_by = auth.uid() OR is_member());
-CREATE POLICY "invites_update" ON invites FOR UPDATE USING (is_member());
 
 -- albums: all members read/write; delete allowed so undiscussed albums can be removed
 CREATE POLICY "albums_select" ON albums FOR SELECT USING (is_member());
@@ -68,7 +63,6 @@ CREATE POLICY "member_settings_own" ON member_settings FOR ALL USING (user_id = 
 -- Required when "Automatically expose new tables" is disabled at project creation.
 -- RLS policies above still control which rows each user can read or write.
 GRANT SELECT, INSERT, UPDATE          ON members         TO authenticated;
-GRANT SELECT, INSERT, UPDATE          ON invites         TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE  ON albums          TO authenticated;
 GRANT SELECT, INSERT, UPDATE          ON tags            TO authenticated;
 GRANT SELECT, INSERT, UPDATE          ON notes           TO authenticated;

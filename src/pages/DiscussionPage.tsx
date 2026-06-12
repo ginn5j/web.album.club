@@ -64,13 +64,15 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
           return
         }
 
-        // No discussion yet — merge all members' data and persist.
+        // No discussion yet — merge all members' data and persist. Any fetch
+        // failure aborts the merge (a partial merge would record empty
+        // tags/notes for the affected members).
         const allMembers = await backend.storage.getMembers()
         const memberData = await Promise.all(
           allMembers.map(async (m) => {
             const [tags, notes] = await Promise.all([
-              backend.storage.getTags(m.userId, albumId).catch(() => null),
-              backend.storage.getNotes(m.userId, albumId).catch(() => null),
+              backend.storage.getTags(m.userId, albumId),
+              backend.storage.getNotes(m.userId, albumId),
             ])
             return { member: m, tags, notes }
           }),
@@ -80,8 +82,11 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
           memberData,
           revealState.revealedAt ?? new Date().toISOString(),
         )
-        await backend.storage.upsertDiscussion(merged)
-        setDiscussion(merged)
+        // First writer wins: if another client merged concurrently, keep
+        // theirs and re-read it as the canonical record.
+        await backend.storage.createDiscussion(merged)
+        const canonical = await backend.storage.getDiscussion(albumId)
+        setDiscussion(canonical ?? merged)
       } catch {
         // Merge failed — fall back to whatever is already in the DB
         try {

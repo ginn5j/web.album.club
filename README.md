@@ -58,12 +58,19 @@ In the Supabase Dashboard → Authentication → Providers → Email:
 - Disable passwords (magic link / OTP only)
 - Add your app URL to Authentication → URL Configuration → Site URL and Redirect URLs
 
-### 4. Disable public sign-ups
+### 4. Choose a new-member policy
 
-In the Supabase Dashboard → Authentication → Settings:
-- Set **Disable sign ups** to **on**
+This setting is the club's security boundary — the app itself does not gate
+membership. Any user who can authenticate may complete onboarding and become a
+member with full read access to revealed discussions.
 
-With sign-ups disabled, only users the admin creates in the Supabase Dashboard → Authentication → Users can sign in. Anyone who attempts to sign in with an unrecognised email will receive no link.
+In the Supabase Dashboard → Authentication → Settings, choose one:
+
+- **Invite-only (recommended):** set **Disable sign ups** to **on**. Only users
+  the admin creates in Supabase Dashboard → Authentication → Users can sign in.
+  Anyone who attempts to sign in with an unrecognised email will receive no link.
+- **Open sign-ups:** leave **Disable sign ups** off. Anyone who finds the app
+  URL can sign in with their email and join the club.
 
 ### 5. Environment variables
 

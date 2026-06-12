@@ -16,6 +16,11 @@ function formatDateLong(isoString: string): string {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
+// For values substituted inside double-quoted YAML front matter strings.
+function escapeYamlQuotes(s: string): string {
+  return s.replace(/"/g, '\\"')
+}
+
 export const DEFAULT_TEMPLATE = `---
 type: post
 album_title: "{{album_title}}"
@@ -81,18 +86,21 @@ function buildTemplateVars(
     .map(([, m]) => `## ${m.name}'s Notes\n\n${m.notes}`)
     .join('\n\n---\n\n')
 
+  // Front-matter vars (album_title, artist, title, picked_by, members_list)
+  // are quote-escaped because the templates wrap them in double-quoted YAML
+  // strings. Body vars (discussed_line, song_table, notes) are left raw.
   return {
-    album_title: album.title,
-    artist: album.artist,
-    title: `Album Club: ${album.title} - ${album.artist}`,
+    album_title: escapeYamlQuotes(album.title),
+    artist: escapeYamlQuotes(album.artist),
+    title: escapeYamlQuotes(`Album Club: ${album.title} - ${album.artist}`),
     date: publishDate,
     discussed_date: formatDate(discussedAt),
     release_year: album.releaseYear != null ? String(album.releaseYear) : '',
     genre: album.genre ?? '',
     mbid: album.mbid ?? '',
     cover_art: album.coverArtUrl ?? '',
-    members_list: `[${memberNames.map((n) => `"${n}"`).join(', ')}]`,
-    picked_by: pickedByName,
+    members_list: `[${memberNames.map((n) => `"${escapeYamlQuotes(n)}"`).join(', ')}]`,
+    picked_by: escapeYamlQuotes(pickedByName),
     permalink: `/blog/${year}/${month}/${day}/${artistSlug}-${titleSlug}/`,
     song_table: songTable,
     notes: notesSections,
@@ -121,91 +129,58 @@ export function generateJekyllFilename(
   return `${interpolatedPath}/${filename}`
 }
 
+// Without a custom template, front matter is assembled line by line so that
+// absent optional fields (release year, genre, mbid, cover art) are omitted
+// entirely rather than emitted with empty values.
 export function generateJekyllPost(
   discussion: DiscussionData,
   publishDate: string,
   template?: string,
 ): string {
+  const vars = buildTemplateVars(discussion, publishDate)
+
   if (template) {
-    return applyTemplate(template, buildTemplateVars(discussion, publishDate))
+    return applyTemplate(template, vars)
   }
 
-  const { album, songs, members, pickedBy, discussedAt } = discussion
-  const memberEntries = Object.entries(members)
-  const memberNames = memberEntries.map(([, m]) => m.name)
-  const pickedByName = members[pickedBy]?.name ?? pickedBy
-  const dateLong = formatDateLong(discussedAt)
-  const year = publishDate.slice(0, 4)
-  const month = publishDate.slice(5, 7)
-  const day = publishDate.slice(8, 10)
-  const artistSlug = slugify(album.artist)
-  const titleSlug = slugify(album.title)
-  const tagLegend = 'Starter = would start a playlist | Bench = solid | Cut = would skip'
-
-  // Build song ratings table
-  const tagHeaders = memberEntries.map(([, m]) => m.name).join(' | ')
-  const tableHeader = `| # | Song | ${tagHeaders} |`
-  const tableSep = `|---|------|${memberEntries.map(() => '---').join('|')}|`
-
-  const tableRows = songs
-    .map((song) => {
-      const tags = memberEntries
-        .map(([, m]) => m.tags[String(song.position)] ?? '—')
-        .join(' | ')
-      return `| ${song.position} | ${song.title} | ${tags} |`
-    })
-    .join('\n')
-
-  // Build member notes sections
-  const notesSections = memberEntries
-    .filter(([, m]) => m.notes.trim())
-    .map(([, m]) => `## ${m.name}'s Notes\n\n${m.notes}`)
-    .join('\n\n---\n\n')
-
-  const escapedTitle = album.title.replace(/"/g, '\\"')
-  const escapedArtist = album.artist.replace(/"/g, '\\"')
-  const permalink = `/blog/${year}/${month}/${day}/${artistSlug}-${titleSlug}/`
+  const { album } = discussion
 
   const frontMatterLines: (string | null)[] = [
     '---',
     'type: post',
-    `album_title: "${escapedTitle}"`,
-    `title: "Album Club: ${escapedTitle} - ${escapedArtist}"`,
+    `album_title: "${vars.album_title}"`,
+    `title: "${vars.title}"`,
     `date: ${publishDate}`,
     'excerpt_separator: <!--more-->',
-    `artist: "${escapedArtist}"`,
-    album.releaseYear != null ? `release_year: ${album.releaseYear}` : null,
-    album.genre ? `genre: ${album.genre}` : null,
-    `discussed_date: ${formatDate(discussedAt)}`,
-    album.mbid ? `mbid: "${album.mbid}"` : null,
-    album.coverArtUrl ? `cover_art: "${album.coverArtUrl}"` : null,
-    `members: [${memberNames.map((n) => `"${n}"`).join(', ')}]`,
-    `picked_by: "${pickedByName}"`,
+    `artist: "${vars.artist}"`,
+    album.releaseYear != null ? `release_year: ${vars.release_year}` : null,
+    album.genre ? `genre: ${vars.genre}` : null,
+    `discussed_date: ${vars.discussed_date}`,
+    album.mbid ? `mbid: "${vars.mbid}"` : null,
+    album.coverArtUrl ? `cover_art: "${vars.cover_art}"` : null,
+    `members: ${vars.members_list}`,
+    `picked_by: "${vars.picked_by}"`,
     ...(album.coverArtUrl
-      ? [`header:`, `  teaser: "${album.coverArtUrl}"`, `  header: "${album.coverArtUrl}"`]
+      ? [`header:`, `  teaser: "${vars.cover_art}"`, `  header: "${vars.cover_art}"`]
       : []),
-    `permalink: ${permalink}`,
+    `permalink: ${vars.permalink}`,
     '---',
   ]
 
   const frontMatter = frontMatterLines.filter((l) => l !== null).join('\n')
 
   const body = [
-    `Discussed on ${dateLong}. Picked by ${pickedByName}.`,
+    vars.discussed_line,
     '',
     '---',
     '',
     '## Song Ratings',
     '',
-    tableHeader,
-    tableSep,
-    tableRows,
-    '',
-    `**Legend:** ${tagLegend}`,
+    vars.song_table,
     '',
     '---',
     '',
-    notesSections,
+    vars.notes,
   ].join('\n')
 
   return `${frontMatter}\n\n${body}\n`

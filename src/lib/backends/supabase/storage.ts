@@ -187,6 +187,16 @@ export const supabaseStorage: StorageProvider = {
     return data ? (data.data as DiscussionData) : null
   },
 
+  async createDiscussion(discussion) {
+    const { error } = await supabase
+      .from('discussions')
+      .upsert(
+        { album_id: discussion.albumId, data: discussion },
+        { onConflict: 'album_id', ignoreDuplicates: true },
+      )
+    if (error) throw error
+  },
+
   async upsertDiscussion(discussion) {
     const { error } = await supabase
       .from('discussions')
@@ -259,38 +269,5 @@ export const supabaseStorage: StorageProvider = {
       { onConflict: 'user_id' },
     )
     if (error) throw error
-  },
-
-  async createInvite(email, invitedByUserId) {
-    const token = crypto.randomUUID()
-    const { error } = await supabase.from('invites').insert({
-      email,
-      token,
-      invited_by: invitedByUserId,
-    })
-    if (error) throw error
-    return { token }
-  },
-
-  async acceptInvite(token, userId) {
-    const { data, error } = await supabase
-      .from('invites')
-      .select('*')
-      .eq('token', token)
-      .is('accepted_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle()
-    if (error) throw error
-    if (!data) throw new Error('Invite not found or expired')
-    const { error: updateError } = await supabase
-      .from('invites')
-      .update({ accepted_at: new Date().toISOString() })
-      .eq('id', (data as Record<string, unknown>).id)
-    if (updateError) throw updateError
-    // Mark the user as a member (display name will be set during onboarding)
-    const { error: memberError } = await supabase
-      .from('members')
-      .upsert({ user_id: userId, display_name: (data as Record<string, unknown>).email as string, role: 'member' }, { onConflict: 'user_id' })
-    if (memberError) throw memberError
   },
 }
