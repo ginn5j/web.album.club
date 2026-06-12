@@ -27,13 +27,15 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
   const albumId = currentAlbum?.id ?? null
 
   const { tags: myTags, setTag, saving: tagSaving, error: tagError } = useSongTags(userId, albumId)
-  const { notes: myNotes, onChange: onNotesChange, saving: notesSaving, saved: notesSaved, error: notesError } = useNotes(userId, albumId)
+  const { notes: myNotes, onChange: onNotesChange, flush: flushNotes, saving: notesSaving, saved: notesSaved, error: notesError } = useNotes(userId, albumId)
   const revealState = useRealtimeReveal(albumId)
 
   const [revealing, setRevealing] = useState(false)
   const [revealError, setRevealError] = useState<string | null>(null)
   const [discussion, setDiscussion] = useState<DiscussionData | null>(null)
   const [loadingDiscussion, setLoadingDiscussion] = useState(false)
+  // Bumped by the Retry button to re-run the merge effect after a failure.
+  const [mergeAttempt, setMergeAttempt] = useState(0)
 
   const membersRef = useRef(members)
   membersRef.current = members
@@ -93,6 +95,8 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
           const existing = await backend.storage.getDiscussion(albumId)
           if (existing) { setDiscussion(existing); return }
         } catch { /* ignore */ }
+        // Clear the guard so Retry (or a remount) can attempt the merge again.
+        revealLoadedForRef.current = null
         setRevealError('Failed to merge discussion')
       } finally {
         setLoadingDiscussion(false)
@@ -100,13 +104,20 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
     }
 
     loadOrCreateDiscussion()
-  }, [revealState.revealed, revealState.revealedAt, currentAlbum, albumId])
+  }, [revealState.revealed, revealState.revealedAt, currentAlbum, albumId, mergeAttempt])
 
   async function handleReveal() {
     if (!albumId || !userId) return
     setRevealing(true)
     setRevealError(null)
     try {
+      // The merge reads notes from the DB the moment the reveal lands, so an
+      // edit still waiting on the debounce must be persisted first.
+      const notesSavedOk = await flushNotes()
+      if (!notesSavedOk) {
+        setRevealError('Reveal cancelled — your notes could not be saved.')
+        return
+      }
       const { revealedAt } = await backend.storage.createReveal(userId, albumId)
       revealState.markRevealed(userId, revealedAt)
     } catch (e) {
@@ -166,6 +177,16 @@ export function DiscussionPage({ currentAlbum, members }: DiscussionPageProps) {
             </div>
             <MergedView discussion={discussion} />
           </div>
+        ) : revealError ? (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setRevealError(null)
+              setMergeAttempt((n) => n + 1)
+            }}
+          >
+            Retry merge
+          </Button>
         ) : null
       ) : (
         <div className="space-y-6">

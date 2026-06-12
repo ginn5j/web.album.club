@@ -9,6 +9,10 @@ export const changelog: ChangelogEntry[] = [
     date: '2026-06-12',
     title: 'Reliability fixes',
     items: [
+      'Save any pending notes before revealing so they can’t be missing from the discussion',
+      'Fix rapid song-tag taps dropping a tag',
+      'Add a Retry button when the discussion merge fails',
+      'Publishing now requires a PAT and validates the publish date',
       'Fix stale reveal instantly unmasking a newly re-picked album',
       'Fix a case where saved notes could be lost',
       'Fix onboarding resetting an existing member’s role',
