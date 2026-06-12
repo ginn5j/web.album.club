@@ -31,7 +31,19 @@ export const supabaseRealtime: RealtimeProvider = {
           cb({ userId: row.user_id as string, revealedAt: row.revealed_at as string })
         },
       )
-      .subscribe()
+      .subscribe((status: string) => {
+        // A reveal inserted between the caller's initial check and the channel
+        // going live (or while reconnecting) emits no event, leaving the client
+        // un-revealed until refresh — so re-check on every (re)subscribe.
+        if (status === 'SUBSCRIBED') {
+          supabaseStorage
+            .getRevealForAlbum(albumId)
+            .then((reveal) => {
+              if (reveal) cb(reveal)
+            })
+            .catch(() => {})
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)

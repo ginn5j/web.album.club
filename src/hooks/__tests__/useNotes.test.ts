@@ -67,6 +67,47 @@ describe('useNotes', () => {
     expect(setNotes).toHaveBeenCalledWith('user-1', 'album-1', 'notes for album one')
   })
 
+  it('retries a failed save on the next flush instead of silently dropping it', async () => {
+    const { result } = renderHook(() => useNotes('user-1', 'album-1'))
+    await act(async () => {})
+
+    act(() => result.current.onChange('important thoughts'))
+    setNotes.mockRejectedValueOnce(new Error('network down'))
+
+    let ok = true
+    await act(async () => {
+      ok = await result.current.flush()
+    })
+    expect(ok).toBe(false)
+
+    // Without the fix, the pending edit was cleared before the failed save,
+    // so this flush would find nothing pending and falsely report success.
+    await act(async () => {
+      ok = await result.current.flush()
+    })
+    expect(ok).toBe(true)
+    expect(setNotes).toHaveBeenCalledTimes(2)
+    expect(setNotes).toHaveBeenLastCalledWith('user-1', 'album-1', 'important thoughts')
+  })
+
+  it('a newer edit wins over a restored failed save', async () => {
+    const { result } = renderHook(() => useNotes('user-1', 'album-1'))
+    await act(async () => {})
+
+    act(() => result.current.onChange('first version'))
+    setNotes.mockRejectedValueOnce(new Error('network down'))
+    await act(async () => {
+      await result.current.flush()
+    })
+
+    act(() => result.current.onChange('second version'))
+    await act(async () => {
+      await result.current.flush()
+    })
+
+    expect(setNotes).toHaveBeenLastCalledWith('user-1', 'album-1', 'second version')
+  })
+
   it('does not save again when nothing is pending', async () => {
     const { result, unmount } = renderHook(() => useNotes('user-1', 'album-1'))
     await act(async () => {})

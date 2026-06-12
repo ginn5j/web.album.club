@@ -49,7 +49,14 @@ export const supabaseStorage: StorageProvider = {
       .insert({ user_id: userId, display_name: displayName, role })
       .select()
       .single()
-    if (error) throw error
+    if (error) {
+      // Unique index on lower(display_name): discussions key member data by
+      // display name, so duplicates would silently merge two members' data.
+      if (error.code === '23505' && error.message.includes('display_name')) {
+        throw new Error('That display name is already taken — please pick another.')
+      }
+      throw error
+    }
     return rowToMember(data as Record<string, unknown>)
   },
 
@@ -122,7 +129,14 @@ export const supabaseStorage: StorageProvider = {
       },
       { onConflict: 'album_id' },
     )
-    if (error) throw error
+    if (error) {
+      // 23505 on the one-current partial index: another member picked an
+      // album concurrently and theirs landed first.
+      if (error.code === '23505') {
+        throw new Error('Someone else just picked an album — it should appear in a moment.')
+      }
+      throw error
+    }
   },
 
   async getTags(userId, albumId) {
@@ -177,15 +191,17 @@ export const supabaseStorage: StorageProvider = {
   },
 
   async createReveal(userId, albumId) {
-    const revealedAt = new Date().toISOString()
+    // revealed_at comes from the DB default (now()) so client clock skew
+    // can't misorder first-reveal-wins; read back the canonical first reveal.
     const { error } = await supabase
       .from('reveals')
       .upsert(
-        { user_id: userId, album_id: albumId, revealed_at: revealedAt },
+        { user_id: userId, album_id: albumId },
         { onConflict: 'user_id,album_id', ignoreDuplicates: true },
       )
     if (error) throw error
-    return { revealedAt }
+    const reveal = await supabaseStorage.getRevealForAlbum(albumId)
+    return { revealedAt: reveal?.revealedAt ?? new Date().toISOString() }
   },
 
   async getDiscussion(albumId) {

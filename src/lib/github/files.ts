@@ -1,82 +1,10 @@
 import { getOctokit, getGraphql } from './client'
 
-export interface ReadResult {
-  content: string
-  sha: string
-  etag?: string
-}
-
-// ETag cache: key = `${owner}/${repo}/${branch}/${path}`
-const etagCache = new Map<string, { etag: string; result: ReadResult }>()
-
 // HEAD OID cache per branch
 const headOidCache = new Map<string, string>()
 
 function encodeContent(content: string): string {
   return btoa(unescape(encodeURIComponent(content)))
-}
-
-export function decodeContent(encoded: string): string {
-  return decodeURIComponent(escape(atob(encoded)))
-}
-
-function cacheKey(owner: string, repo: string, branch: string, path: string) {
-  return `${owner}/${repo}/${branch}/${path}`
-}
-
-export async function readFile(
-  pat: string,
-  owner: string,
-  repo: string,
-  branch: string,
-  path: string,
-  useEtag = false,
-): Promise<ReadResult | null> {
-  const octokit = getOctokit(pat)
-  const key = cacheKey(owner, repo, branch, path)
-  const cached = etagCache.get(key)
-
-  try {
-    const headers: Record<string, string> = {}
-    if (useEtag && cached) {
-      headers['If-None-Match'] = cached.etag
-    }
-
-    const response = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-      owner,
-      repo,
-      path,
-      ref: branch,
-      headers,
-    })
-
-    const data = response.data as { content: string; sha: string }
-    const result: ReadResult = {
-      content: decodeContent(data.content.replace(/\n/g, '')),
-      sha: data.sha,
-      etag: (response.headers as Record<string, string>)['etag'],
-    }
-
-    if (useEtag && result.etag) {
-      etagCache.set(key, { etag: result.etag, result })
-    }
-
-    return result
-  } catch (err: unknown) {
-    const e = err as { status?: number }
-    if (e?.status === 304 && cached) return cached.result
-    if (e?.status === 404) return null
-    throw err
-  }
-}
-
-export function clearEtagCache(
-  owner: string,
-  repo: string,
-  branch: string,
-  path: string,
-) {
-  etagCache.delete(cacheKey(owner, repo, branch, path))
 }
 
 export interface FileAddition {
