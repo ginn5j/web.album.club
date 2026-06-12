@@ -40,6 +40,9 @@ export interface StorageProvider {
 
   // Discussions
   getDiscussion(albumId: string): Promise<DiscussionData | null>
+  // Insert only if no discussion exists for the album (first writer wins).
+  // Used for the post-reveal merge so a concurrent client can't overwrite it.
+  createDiscussion(discussion: DiscussionData): Promise<void>
   upsertDiscussion(discussion: DiscussionData): Promise<void>
   listDiscussions(): Promise<DiscussionData[]>
 
@@ -50,10 +53,6 @@ export interface StorageProvider {
   // Member settings (publish config)
   getMemberSettings(userId: string): Promise<MemberSettingsData | null>
   setMemberSettings(userId: string, settings: MemberSettingsData): Promise<void>
-
-  // Invites
-  createInvite(email: string, invitedByUserId: string): Promise<{ token: string }>
-  acceptInvite(token: string, userId: string): Promise<void>
 }
 
 export interface RealtimeProvider {

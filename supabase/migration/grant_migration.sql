@@ -8,7 +8,6 @@
 -- privileges — the app itself never uses the service_role key.
 
 GRANT SELECT, INSERT, UPDATE          ON members         TO service_role;
-GRANT SELECT, INSERT, UPDATE          ON invites         TO service_role;
 GRANT SELECT, INSERT, UPDATE          ON albums          TO service_role;
 GRANT SELECT, INSERT, UPDATE          ON tags            TO service_role;
 GRANT SELECT, INSERT, UPDATE          ON notes           TO service_role;

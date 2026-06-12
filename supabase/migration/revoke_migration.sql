@@ -8,7 +8,6 @@
 -- privileges are not needed during normal operation.
 
 REVOKE ALL ON members         FROM service_role;
-REVOKE ALL ON invites         FROM service_role;
 REVOKE ALL ON albums          FROM service_role;
 REVOKE ALL ON tags            FROM service_role;
 REVOKE ALL ON notes           FROM service_role;

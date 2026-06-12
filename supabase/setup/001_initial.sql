@@ -7,17 +7,6 @@ CREATE TABLE members (
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 
--- Email invitations created by an admin
-CREATE TABLE invites (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email       text NOT NULL,
-  token       text UNIQUE NOT NULL,
-  invited_by  uuid NOT NULL REFERENCES auth.users(id),
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  expires_at  timestamptz NOT NULL DEFAULT now() + interval '7 days',
-  accepted_at timestamptz
-);
-
 -- Albums (one row per album; is_current marks the active one)
 CREATE TABLE albums (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),

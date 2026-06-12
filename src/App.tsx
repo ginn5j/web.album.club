@@ -59,13 +59,16 @@ export function App() {
     navigate('/')
   }, [refresh, navigate])
 
+  // Keyed on userId (not the member object) so token refreshes that produce a
+  // new member reference don't refetch the roster.
+  const myUserId = member?.userId
   useEffect(() => {
-    if (!member) return
+    if (!myUserId) return
     backend.storage
       .getMembers()
       .then(setMembers)
       .catch((e: unknown) => setMembersError(e instanceof Error ? e.message : 'Failed to load members'))
-  }, [session])
+  }, [myUserId])
 
   if (authLoading) {
     return (
