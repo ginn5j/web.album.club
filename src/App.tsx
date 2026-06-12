@@ -4,6 +4,7 @@ import { Disc3, Star, MessageSquare, ListMusic, BookOpen, Settings, Home, Info }
 import { ToastContainer, type ToastMessage } from './components/ui/Toast'
 import { Spinner } from './components/ui/Spinner'
 import { ErrorBanner } from './components/ui/ErrorBanner'
+import { Button } from './components/ui/Button'
 import { SettingsPage } from './pages/SettingsPage'
 import { HomePage } from './pages/HomePage'
 import { AlbumPage } from './pages/AlbumPage'
@@ -20,6 +21,39 @@ import { useRealtimeAlbum } from './hooks/useRealtimeAlbum'
 import { backend } from './lib/backends'
 import type { CurrentAlbum } from './types/album'
 import type { Member } from './types/member'
+
+// Shown when the member lookup failed (e.g. network blip on session restore).
+// Rendering OnboardingPage here instead would let an existing member "re-join"
+// and overwrite their display name.
+function MemberLoadError({ message }: { message: string }) {
+  const { refreshMember, signOut } = useAuth()
+  const [retrying, setRetrying] = useState(false)
+
+  async function handleRetry() {
+    setRetrying(true)
+    try {
+      await refreshMember()
+    } finally {
+      setRetrying(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="max-w-sm w-full space-y-4">
+        <ErrorBanner message={`Couldn't load your membership: ${message}`} />
+        <div className="flex gap-2">
+          <Button onClick={handleRetry} disabled={retrying}>
+            {retrying ? 'Retrying...' : 'Retry'}
+          </Button>
+          <Button variant="ghost" onClick={signOut}>
+            Sign out
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function useToasts() {
   const [toasts, setToasts] = useState<ToastMessage[]>([])
@@ -40,7 +74,7 @@ export function App() {
   const navigate = useNavigate()
   const location = useLocation()
   const { toasts, addToast, dismissToast } = useToasts()
-  const { session, member, loading: authLoading } = useAuth()
+  const { session, member, memberError, loading: authLoading } = useAuth()
 
   const [members, setMembers] = useState<Member[]>([])
   const [membersError, setMembersError] = useState<string | null>(null)
@@ -83,6 +117,9 @@ export function App() {
   }
 
   if (!member) {
+    if (memberError) {
+      return <MemberLoadError message={memberError} />
+    }
     return <OnboardingPage />
   }
 

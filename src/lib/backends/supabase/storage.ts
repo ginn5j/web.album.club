@@ -33,9 +33,20 @@ export const supabaseStorage: StorageProvider = {
   },
 
   async upsertMember({ userId, displayName, role = 'member' }) {
+    // Update first so an existing row keeps its role — a plain upsert would
+    // reset role to the default if onboarding ever re-runs for a member.
+    const { data: updated, error: updateError } = await supabase
+      .from('members')
+      .update({ display_name: displayName })
+      .eq('user_id', userId)
+      .select()
+      .maybeSingle()
+    if (updateError) throw updateError
+    if (updated) return rowToMember(updated as Record<string, unknown>)
+
     const { data, error } = await supabase
       .from('members')
-      .upsert({ user_id: userId, display_name: displayName, role }, { onConflict: 'user_id' })
+      .insert({ user_id: userId, display_name: displayName, role })
       .select()
       .single()
     if (error) throw error

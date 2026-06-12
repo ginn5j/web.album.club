@@ -286,15 +286,21 @@ describe('buildCurrentAlbum', () => {
     expect(result.source).toBe('manual')
   })
 
-  it('uses album.mbid as the id when present', () => {
+  it('bases the id on album.mbid when present', () => {
     const result = buildCurrentAlbum(baseAlbum, songs, 'alice')
-    expect(result.id).toBe('radiohead-ok-computer-mbid')
+    expect(result.id).toMatch(/^radiohead-ok-computer-mbid-[0-9a-f-]{8}$/)
   })
 
-  it('slugifies artist + title as fallback id when mbid is absent', () => {
+  it('slugifies artist + title as fallback id base when mbid is absent', () => {
     const albumNoMbid: AlbumInfo = { title: 'OK Computer', artist: 'Radiohead' }
     const result = buildCurrentAlbum(albumNoMbid, songs, 'alice')
-    expect(result.id).toBe('radiohead-ok-computer')
+    expect(result.id).toMatch(/^radiohead-ok-computer-[0-9a-f-]{8}$/)
+  })
+
+  it('generates a distinct id each time the same album is picked', () => {
+    const first = buildCurrentAlbum(baseAlbum, songs, 'alice')
+    const second = buildCurrentAlbum(baseAlbum, songs, 'alice')
+    expect(first.id).not.toBe(second.id)
   })
 
   it('selectedAt is a valid ISO date string', () => {

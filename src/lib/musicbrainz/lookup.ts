@@ -79,9 +79,14 @@ export function buildCurrentAlbum(
   selectedBy: string,
   source: 'musicbrainz' | 'manual' = 'musicbrainz',
 ): CurrentAlbum {
+  const base = album.mbid ?? `${slugify(album.artist)}-${slugify(album.title)}`
+  // The id is unique per pick, not per release. tags/notes/reveals/discussions
+  // key on it with no FK cleanup when an abandoned album row is deleted, so a
+  // reused id would resurface stale rows — most damagingly an old reveal,
+  // which would unmask the new round immediately.
   return {
     schemaVersion: 1,
-    id: album.mbid ?? `${slugify(album.artist)}-${slugify(album.title)}`,
+    id: `${base}-${crypto.randomUUID().slice(0, 8)}`,
     source,
     selectedAt: new Date().toISOString(),
     selectedBy,
