@@ -7,6 +7,10 @@ import type { Member } from '../../types/member'
 interface AuthState {
   session: Session | null
   member: Member | null
+  // Set when the member lookup itself failed. Callers must not treat a null
+  // member as "not a member yet" while this is set — a transient error would
+  // otherwise send an existing member back through onboarding.
+  memberError: string | null
   loading: boolean
   signOut: () => Promise<void>
   refreshMember: () => Promise<void>
@@ -15,6 +19,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState>({
   session: null,
   member: null,
+  memberError: null,
   loading: true,
   signOut: async () => {},
   refreshMember: async () => {},
@@ -23,14 +28,17 @@ const AuthContext = createContext<AuthState>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [member, setMember] = useState<Member | null>(null)
+  const [memberError, setMemberError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   async function loadMember(userId: string) {
     try {
       const m = await backend.storage.getMemberByUserId(userId)
       setMember(m)
-    } catch {
+      setMemberError(null)
+    } catch (e) {
       setMember(null)
+      setMemberError(e instanceof Error ? e.message : 'Failed to load membership')
     }
   }
 
@@ -54,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadMember(s.user.id)
       } else {
         setMember(null)
+        setMemberError(null)
       }
     })
 
@@ -66,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, member, loading, signOut, refreshMember }}>
+    <AuthContext.Provider value={{ session, member, memberError, loading, signOut, refreshMember }}>
       {children}
     </AuthContext.Provider>
   )
