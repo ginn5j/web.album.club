@@ -15,7 +15,15 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # TEMPORARY: regenerate the drifted lockfile and expose it as an
+      # artifact so it can be committed (Node is not installed locally).
+      # Will be reverted to `npm ci` once the lockfile is committed.
+      - run: npm install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-lock
+          path: package-lock.json
 
       - name: Lint
         run: npm run lint
