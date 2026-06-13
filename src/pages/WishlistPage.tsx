@@ -33,8 +33,10 @@ export function WishlistPage({ onAlbumPicked }: WishlistPageProps) {
   const [checkingId, setCheckingId] = useState<string | null>(null)
 
   function handleSelect(album: AlbumInfo, _songs: Song[], source: 'musicbrainz' | 'manual') {
+    // The id must be unique per item, not per release — adding the same album
+    // twice with a shared id would make removeItem delete both copies.
     const item: WishlistItem = {
-      id: album.mbid ?? `${Date.now()}`,
+      id: crypto.randomUUID(),
       addedAt: new Date().toISOString(),
       album,
       source,

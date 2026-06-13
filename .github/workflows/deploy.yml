@@ -18,6 +18,12 @@ env:
   PAGES_DIR: album-club
   VITE_BASE_URL: /album-club
 
+# Serialize deploys: concurrent runs race the push to the pages repo and the
+# loser fails with a non-fast-forward error.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -29,7 +35,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm install
+      - run: npm ci
 
       - name: Lint
         run: npm run lint

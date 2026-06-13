@@ -21,6 +21,9 @@ export function useRealtimeAlbum(
     if (!enabled) return
     try {
       const album = await backend.storage.getCurrentAlbum()
+      // Clear any stale error: callers treat a set error as fatal (HomePage
+      // renders only the banner), so it must not outlive a successful fetch.
+      setError(null)
       setCurrentAlbum((prev) => {
         if (album && prev && album.id !== prev.id && onAlbumChanged) {
           onAlbumChanged(album)
@@ -40,7 +43,10 @@ export function useRealtimeAlbum(
     }
     backend.storage
       .getCurrentAlbum()
-      .then(setCurrentAlbum)
+      .then((album) => {
+        setError(null)
+        setCurrentAlbum(album)
+      })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load album'))
       .finally(() => setLoading(false))
   }, [enabled])
@@ -49,6 +55,9 @@ export function useRealtimeAlbum(
   useEffect(() => {
     if (!enabled) return
     const unsubscribe = backend.realtime.subscribeToCurrentAlbum((album) => {
+      // The subscription only delivers successful fetches, so any earlier
+      // load error is stale by now.
+      setError(null)
       setCurrentAlbum((prev) => {
         if (album && prev && album.id !== prev.id && onAlbumChanged) {
           onAlbumChanged(album)

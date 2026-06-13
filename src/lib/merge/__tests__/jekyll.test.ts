@@ -158,7 +158,7 @@ describe('generateJekyllPost', () => {
   it('includes optional front matter fields when present', () => {
     const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE)
     expect(post).toContain('release_year: 1997')
-    expect(post).toContain('genre: Alternative Rock')
+    expect(post).toContain('genre: "Alternative Rock"')
     expect(post).toContain('mbid: "abc-123"')
     expect(post).toContain('cover_art: "https://example.com/cover.jpg"')
   })
@@ -173,6 +173,15 @@ describe('generateJekyllPost', () => {
     expect(post).not.toContain('genre')
     expect(post).not.toContain('mbid')
     expect(post).not.toContain('cover_art')
+  })
+
+  it('quotes and escapes the genre so YAML-significant characters are inert', () => {
+    const d: DiscussionData = {
+      ...baseDiscussion,
+      album: { ...baseDiscussion.album, genre: 'Rock: "Hard"' },
+    }
+    const post = generateJekyllPost(d, PUBLISH_DATE)
+    expect(post).toContain('genre: "Rock: \\"Hard\\""')
   })
 
   it('escapes double quotes in album title', () => {
