@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { backend } from '../lib/backends'
-import { useAuth } from '../lib/auth/AuthContext'
+import { useAuth } from '../lib/auth/useAuth'
 
 export function OnboardingPage() {
   const { session, refreshMember } = useAuth()

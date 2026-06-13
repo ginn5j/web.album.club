@@ -25,7 +25,7 @@ vi.mock('../../lib/backends', () => ({
   },
 }))
 
-vi.mock('../../lib/auth/AuthContext', () => ({
+vi.mock('../../lib/auth/useAuth', () => ({
   useAuth: () => ({
     member: {
       id: 'm1',

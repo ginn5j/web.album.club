@@ -4,7 +4,7 @@ import { Button } from './ui/Button'
 import { generateJekyllPost, generateJekyllFilename } from '../lib/merge/jekyll'
 import { commitFileToRepo } from '../lib/github/files'
 import { backend } from '../lib/backends'
-import { useAuth } from '../lib/auth/AuthContext'
+import { useAuth } from '../lib/auth/useAuth'
 import type { DiscussionData } from '../types/discussion'
 import type { MemberSettingsData } from '../lib/backends/types'
 
