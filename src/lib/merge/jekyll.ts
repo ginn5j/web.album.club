@@ -31,7 +31,7 @@ date: {{date}}
 excerpt_separator: <!--more-->
 artist: "{{artist}}"
 release_year: {{release_year}}
-genre: {{genre}}
+genre: "{{genre}}"
 discussed_date: {{discussed_date}}
 mbid: "{{mbid}}"
 cover_art: "{{cover_art}}"
@@ -88,9 +88,10 @@ function buildTemplateVars(
     .map(([, m]) => `## ${m.name}'s Notes\n\n${m.notes}`)
     .join('\n\n---\n\n')
 
-  // Front-matter vars (album_title, artist, title, picked_by, members_list)
-  // are quote-escaped because the templates wrap them in double-quoted YAML
-  // strings. Body vars (discussed_line, song_table, notes) are left raw.
+  // Front-matter vars (album_title, artist, title, genre, picked_by,
+  // members_list) are quote-escaped because the templates wrap them in
+  // double-quoted YAML strings. Body vars (discussed_line, song_table, notes)
+  // are left raw.
   return {
     album_title: escapeYamlQuotes(album.title),
     artist: escapeYamlQuotes(album.artist),
@@ -98,7 +99,7 @@ function buildTemplateVars(
     date: publishDate,
     discussed_date: formatDate(discussedAt),
     release_year: album.releaseYear != null ? String(album.releaseYear) : '',
-    genre: album.genre ?? '',
+    genre: escapeYamlQuotes(album.genre ?? ''),
     mbid: album.mbid ?? '',
     cover_art: album.coverArtUrl ?? '',
     members_list: `[${memberNames.map((n) => `"${escapeYamlQuotes(n)}"`).join(', ')}]`,
@@ -156,7 +157,7 @@ export function generateJekyllPost(
     'excerpt_separator: <!--more-->',
     `artist: "${vars.artist}"`,
     album.releaseYear != null ? `release_year: ${vars.release_year}` : null,
-    album.genre ? `genre: ${vars.genre}` : null,
+    album.genre ? `genre: "${vars.genre}"` : null,
     `discussed_date: ${vars.discussed_date}`,
     album.mbid ? `mbid: "${vars.mbid}"` : null,
     album.coverArtUrl ? `cover_art: "${vars.cover_art}"` : null,

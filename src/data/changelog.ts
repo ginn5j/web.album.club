@@ -7,6 +7,16 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-06-12',
+    title: 'Review follow-up fixes',
+    items: [
+      'Fix a temporary connection error permanently hiding the home page',
+      'Always confirm before replacing an album that hasn’t been discussed',
+      'Fix removing a wishlist album also removing duplicates of it',
+      'Fix genres with special characters breaking published blog posts',
+    ],
+  },
+  {
+    date: '2026-06-12',
     title: 'Code review fixes',
     items: [
       'Fix a reveal by another member sometimes not appearing until refresh',

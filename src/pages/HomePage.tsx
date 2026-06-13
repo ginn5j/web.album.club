@@ -36,7 +36,9 @@ export function HomePage({ currentAlbum, loading, albumError, onAlbumPicked }: H
         setConfirmingPick(true)
       }
     } catch {
-      setPicking(true)
+      // Fail safe: picking a new album deletes an undiscussed one, so if the
+      // discussion check itself fails, ask for confirmation rather than skip it.
+      setConfirmingPick(true)
     } finally {
       setCheckingDiscussion(false)
     }
