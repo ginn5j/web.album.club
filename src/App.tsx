@@ -98,10 +98,33 @@ export function App() {
   const myUserId = member?.userId
   useEffect(() => {
     if (!myUserId) return
-    backend.storage
-      .getMembers()
-      .then(setMembers)
-      .catch((e: unknown) => setMembersError(e instanceof Error ? e.message : 'Failed to load members'))
+    let cancelled = false
+    const load = () => {
+      backend.storage
+        .getMembers()
+        .then((m) => {
+          if (cancelled) return
+          setMembers(m)
+          setMembersError(null)
+        })
+        .catch((e: unknown) => {
+          if (!cancelled) setMembersError(e instanceof Error ? e.message : 'Failed to load members')
+        })
+    }
+    load()
+    // The roster has no realtime subscription, so refetch when the tab regains
+    // focus — otherwise a member who joins mid-session never appears until a
+    // full reload.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    window.addEventListener('focus', load)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', load)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [myUserId])
 
   if (authLoading) {

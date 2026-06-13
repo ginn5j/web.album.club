@@ -59,7 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       if (s) {
-        loadMember(s.user.id)
+        // Defer past the callback: supabase-js holds its internal auth lock
+        // while this callback runs, and issuing another Supabase call from
+        // inside it can deadlock (documented onAuthStateChange caveat).
+        setTimeout(() => { void loadMember(s.user.id) }, 0)
       } else {
         setMember(null)
         setMemberError(null)

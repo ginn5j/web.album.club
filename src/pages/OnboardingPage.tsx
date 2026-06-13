@@ -45,6 +45,9 @@ export function OnboardingPage() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="How should we call you?"
+            // Names are permanent once baked into discussion snapshots and
+            // become table column headers, so keep them bounded.
+            maxLength={32}
             autoFocus
           />
           <Button type="submit" className="w-full" disabled={saving || !displayName.trim()}>
