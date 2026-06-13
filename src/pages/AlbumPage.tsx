@@ -6,7 +6,7 @@ import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { useSongTags } from '../hooks/useSongTags'
 import { useNotes } from '../hooks/useNotes'
 import { useRealtimeReveal } from '../hooks/useRealtimeReveal'
-import { useAuth } from '../lib/auth/AuthContext'
+import { useAuth } from '../lib/auth/useAuth'
 import type { CurrentAlbum } from '../types/album'
 
 interface AlbumPageProps {

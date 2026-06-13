@@ -7,6 +7,15 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-06-12',
+    title: 'Polish',
+    items: [
+      'New members now appear in the roster when you return to the tab — no reload needed',
+      'Album lookup failures in query search now show inline instead of a browser popup',
+      'Display names are limited to 32 characters',
+    ],
+  },
+  {
+    date: '2026-06-12',
     title: 'Review follow-up fixes',
     items: [
       'Fix a temporary connection error permanently hiding the home page',

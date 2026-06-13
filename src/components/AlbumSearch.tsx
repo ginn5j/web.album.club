@@ -20,6 +20,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   const [selectedMbid, setSelectedMbid] = useState<string | null>(null)
   const [brokenArt, setBrokenArt] = useState<Set<string>>(new Set())
   const [lookingUp, setLookingUp] = useState(false)
+  const [lookupError, setLookupError] = useState<string | null>(null)
   const [showManual, setShowManual] = useState(false)
 
   // Manual entry form state
@@ -42,6 +43,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   async function handleSelect(mbid: string) {
     setSelectedMbid(mbid)
     setLookingUp(true)
+    setLookupError(null)
     try {
       const { album, songs } = await lookupRelease(mbid)
       onSelect(album, songs, 'musicbrainz')
@@ -50,7 +52,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
       setFilterYear('')
       setFilterFormat('')
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to load album details')
+      setLookupError(e instanceof Error ? e.message : 'Failed to load album details')
     } finally {
       setLookingUp(false)
       setSelectedMbid(null)
@@ -151,6 +153,8 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
           <option value="Digital Media">Digital Media</option>
         </select>
       </div>
+
+      {lookupError && <p className="text-sm text-red-600">{lookupError}</p>}
 
       {results.length > 0 && (
         <ul className="divide-y divide-gray-100 rounded-md border border-gray-200 bg-white shadow-sm">

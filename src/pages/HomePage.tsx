@@ -6,7 +6,7 @@ import { AlbumPicker } from '../components/AlbumPicker'
 import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { backend } from '../lib/backends'
-import { useAuth } from '../lib/auth/AuthContext'
+import { useAuth } from '../lib/auth/useAuth'
 import { buildCurrentAlbum } from '../lib/musicbrainz/lookup'
 import type { CurrentAlbum, AlbumInfo, Song } from '../types/album'
 

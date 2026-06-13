@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { backend } from '../lib/backends'
-import { useAuth } from '../lib/auth/AuthContext'
+import { useAuth } from '../lib/auth/useAuth'
 
 export function OnboardingPage() {
   const { session, refreshMember } = useAuth()
@@ -45,6 +45,9 @@ export function OnboardingPage() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="How should we call you?"
+            // Names are permanent once baked into discussion snapshots and
+            // become table column headers, so keep them bounded.
+            maxLength={32}
             autoFocus
           />
           <Button type="submit" className="w-full" disabled={saving || !displayName.trim()}>
