@@ -58,7 +58,7 @@ const album: CurrentAlbum = {
 }
 
 beforeEach(() => {
-  ;(supabase.channel as unknown as Mock).mockImplementation(() => makeChannel())
+  (supabase.channel as unknown as Mock).mockImplementation(() => makeChannel())
   getCurrentAlbum.mockResolvedValue(null)
   getRevealForAlbum.mockResolvedValue(null)
 })
