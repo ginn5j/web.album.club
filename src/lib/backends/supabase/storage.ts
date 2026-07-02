@@ -32,7 +32,7 @@ export const supabaseStorage: StorageProvider = {
     return data ? rowToMember(data as Record<string, unknown>) : null
   },
 
-  async upsertMember({ userId, displayName, role = 'member' }) {
+  async upsertMember({ userId, displayName }) {
     // Update first so an existing row keeps its role — a plain upsert would
     // reset role to the default if onboarding ever re-runs for a member.
     const { data: updated, error: updateError } = await supabase
@@ -44,9 +44,11 @@ export const supabaseStorage: StorageProvider = {
     if (updateError) throw updateError
     if (updated) return rowToMember(updated as Record<string, unknown>)
 
+    // role is intentionally not sent: the INSERT grant is column-restricted
+    // (005_role_protection.sql), so it always takes the DB default 'member'.
     const { data, error } = await supabase
       .from('members')
-      .insert({ user_id: userId, display_name: displayName, role })
+      .insert({ user_id: userId, display_name: displayName })
       .select()
       .single()
     if (error) {

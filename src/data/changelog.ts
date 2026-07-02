@@ -6,6 +6,16 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: '2026-07-02',
+    title: 'Review round 3',
+    items: [
+      'Album search failures now show an error instead of an empty result list',
+      'An album picked while your connection was down now appears on reconnect',
+      'Adding the same album twice as a past discussion no longer overwrites the first entry',
+      'Members can no longer grant themselves admin through the API (requires applying 005_role_protection.sql)',
+    ],
+  },
+  {
     date: '2026-06-12',
     title: 'Polish',
     items: [

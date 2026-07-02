@@ -46,10 +46,11 @@ A small-group music listening club app — like a book club, but for albums. Mem
 Run the migration files against your project (Dashboard → SQL Editor, or Supabase CLI):
 
 ```
-supabase/setup/001_initial.sql   # Tables
-supabase/setup/002_rls.sql       # Row-Level Security policies + grants
-supabase/setup/003_realtime.sql  # Enable Realtime on albums + reveals
-supabase/setup/004_hardening.sql # Indexes, search_path pinning, cleanup trigger
+supabase/setup/001_initial.sql          # Tables
+supabase/setup/002_rls.sql              # Row-Level Security policies + grants
+supabase/setup/003_realtime.sql         # Enable Realtime on albums + reveals
+supabase/setup/004_hardening.sql        # Indexes, search_path pinning, cleanup trigger
+supabase/setup/005_role_protection.sql  # Column-restricted member grants (role escalation fix)
 ```
 
 ### 3. Enable email authentication
@@ -100,7 +101,7 @@ UPDATE members SET role = 'admin' WHERE display_name = 'Your Name';
 4. On first sign-in with no existing record: member chooses a display name
 5. Member is now active in the club
 
-Returning members' sessions are restored automatically. Users not created by the admin cannot sign in (public sign-ups are disabled).
+Returning members' sessions are restored automatically. With the recommended invite-only policy (see step 4 above), users not created by the admin cannot sign in.
 
 ---
 
@@ -163,7 +164,7 @@ Additional picker features:
 ## Deployment
 
 Every push to `main` triggers `.github/workflows/deploy.yml`, which:
-1. Runs tests
+1. Runs lint and tests
 2. Builds with `VITE_BASE_URL=/album-club` and the Supabase env vars (secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`)
 3. Deploys to the `album-club` directory of `ginn5j/ginn5j.github.io`
 
@@ -171,7 +172,7 @@ Every push to `main` triggers `.github/workflows/deploy.yml`, which:
 
 ## Building locally
 
-Node.js 18+ required. Create a `.env.local` file with the Supabase variables:
+Node.js 20+ required (CI builds on Node 22). Create a `.env.local` file with the Supabase variables:
 
 ```sh
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -206,7 +207,8 @@ src/
 │   ├── github/          # Octokit client + file helpers (Jekyll publishing only)
 │   ├── musicbrainz/     # Rate-limited MusicBrainz client
 │   ├── merge/           # Discussion merger; Jekyll post generator
-│   └── settings.ts      # localStorage helpers (kept for legacy settings.test.ts)
+│   ├── slugify.ts       # Shared slug helper (album ids, Jekyll filenames)
+│   └── settings.ts      # localStorage helpers (search style preference)
 ├── hooks/               # React hooks
 │   ├── useRealtimeAlbum.ts  # Supabase Realtime subscription for current album
 │   ├── useRealtimeReveal.ts # Supabase Realtime subscription for reveal events
@@ -226,10 +228,12 @@ supabase/
 │   ├── 001_initial.sql  # All tables
 │   ├── 002_rls.sql      # Row-Level Security policies + authenticated grants
 │   ├── 003_realtime.sql # Enable Realtime publication for albums + reveals
-│   └── 004_hardening.sql # Indexes, search_path pinning, album cleanup trigger
+│   ├── 004_hardening.sql # Indexes, search_path pinning, album cleanup trigger
+│   └── 005_role_protection.sql # Column-restricted member grants (role escalation fix)
 └── migration/
     ├── grant_migration.sql   # Run before /migrate — temporary service_role access
-    └── revoke_migration.sql  # Run after /migrate — removes service_role access
+    ├── revoke_migration.sql  # Run after /migrate — removes service_role access
+    └── drop_invites.sql      # Removes the legacy invites table from early deployments
 ```
 
 ---

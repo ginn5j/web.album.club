@@ -4,16 +4,23 @@ import type { RealtimeProvider } from '../types'
 
 export const supabaseRealtime: RealtimeProvider = {
   subscribeToCurrentAlbum(cb) {
+    const deliverCurrent = () => {
+      supabaseStorage.getCurrentAlbum().then((album) => {
+        // Ignore null: during album swap the DELETE fires before the INSERT,
+        // briefly returning null. The INSERT event delivers the new album.
+        if (album !== null) cb(album)
+      }).catch(() => {})
+    }
+
     const channel = supabase
       .channel('albums-current')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'albums' }, () => {
-        supabaseStorage.getCurrentAlbum().then((album) => {
-          // Ignore null: during album swap the DELETE fires before the INSERT,
-          // briefly returning null. The INSERT event delivers the new album.
-          if (album !== null) cb(album)
-        }).catch(() => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'albums' }, deliverCurrent)
+      .subscribe((status: string) => {
+        // An album picked between the caller's initial load and the channel
+        // going live (or while reconnecting) emits no event, so re-fetch on
+        // every (re)subscribe — same treatment as the reveals channel below.
+        if (status === 'SUBSCRIBED') deliverCurrent()
       })
-      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
