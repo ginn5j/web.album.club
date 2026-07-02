@@ -1,5 +1,6 @@
 import { MUSICBRAINZ_API_BASE, COVER_ART_BASE } from '../../constants/config'
 import { mbFetch } from './client'
+import { slugify } from '../slugify'
 import type { AlbumInfo, Song, CurrentAlbum } from '../../types/album'
 
 interface MBRecording {
@@ -73,31 +74,30 @@ export async function lookupRelease(mbid: string): Promise<{
   return { album, songs }
 }
 
+// Album ids are unique per pick/entry, not per release.
+// tags/notes/reveals/discussions key on the id with no FK cleanup when an
+// abandoned album row is deleted, so a reused id would resurface stale rows —
+// most damagingly an old reveal, which would unmask the new round immediately.
+// Back-entry discussions use it too, so two entries for the same release
+// can't silently overwrite each other.
+export function uniqueAlbumId(album: AlbumInfo): string {
+  const base = album.mbid ?? `${slugify(album.artist)}-${slugify(album.title)}`
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`
+}
+
 export function buildCurrentAlbum(
   album: AlbumInfo,
   songs: Song[],
   selectedBy: string,
   source: 'musicbrainz' | 'manual' = 'musicbrainz',
 ): CurrentAlbum {
-  const base = album.mbid ?? `${slugify(album.artist)}-${slugify(album.title)}`
-  // The id is unique per pick, not per release. tags/notes/reveals/discussions
-  // key on it with no FK cleanup when an abandoned album row is deleted, so a
-  // reused id would resurface stale rows — most damagingly an old reveal,
-  // which would unmask the new round immediately.
   return {
     schemaVersion: 1,
-    id: `${base}-${crypto.randomUUID().slice(0, 8)}`,
+    id: uniqueAlbumId(album),
     source,
     selectedAt: new Date().toISOString(),
     selectedBy,
     album,
     songs,
   }
-}
-
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
 }

@@ -6,6 +6,7 @@ import { Spinner } from '../components/ui/Spinner'
 import { ErrorBanner } from '../components/ui/ErrorBanner'
 import { AlbumPicker } from '../components/AlbumPicker'
 import { backend } from '../lib/backends'
+import { uniqueAlbumId } from '../lib/musicbrainz/lookup'
 import type { DiscussionData, MemberDiscussionData, TagValue } from '../types/discussion'
 import type { AlbumInfo, Song } from '../types/album'
 import type { Member } from '../types/member'
@@ -91,11 +92,11 @@ export function DiscussionEditPage() {
     setSaving(true)
     setError(null)
 
-    const id = album.mbid ?? albumId ?? `${Date.now()}`
-
     const discussion: DiscussionData = {
       schemaVersion: 1,
-      albumId: isNew ? id : albumId!,
+      // New back-entries get a per-entry suffixed id (like live picks) so two
+      // entries for the same release can't upsert over each other.
+      albumId: isNew ? uniqueAlbumId(album) : albumId!,
       album,
       songs,
       pickedBy,

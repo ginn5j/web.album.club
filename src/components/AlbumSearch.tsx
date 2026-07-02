@@ -38,7 +38,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
   ]
     .filter(Boolean)
     .join(' ')
-  const { results, loading } = useMusicBrainz(showManual ? '' : combinedQuery)
+  const { results, loading, error: searchError } = useMusicBrainz(showManual ? '' : combinedQuery)
 
   async function handleSelect(mbid: string) {
     setSelectedMbid(mbid)
@@ -154,6 +154,7 @@ export function AlbumSearch({ onSelect }: AlbumSearchProps) {
         </select>
       </div>
 
+      {searchError && <p className="text-sm text-red-600">Search failed: {searchError}</p>}
       {lookupError && <p className="text-sm text-red-600">{lookupError}</p>}
 
       {results.length > 0 && (

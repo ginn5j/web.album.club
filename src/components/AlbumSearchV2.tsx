@@ -37,10 +37,10 @@ export function AlbumSearchV2({ onSelect }: AlbumSearchV2Props = {}) {
   const [lookingUpId, setLookingUpId] = useState<string | null>(null)
   const [lookupError, setLookupError] = useState<string | null>(null)
 
-  const { results: artistResults, loading: artistLoading } = useArtistSearch(
+  const { results: artistResults, loading: artistLoading, error: artistError } = useArtistSearch(
     selectedArtist ? '' : artistQuery,
   )
-  const { results: rgResults, loading: rgLoading } = useReleaseGroupSearch(
+  const { results: rgResults, loading: rgLoading, error: rgError } = useReleaseGroupSearch(
     selectedRg ? '' : rgQuery,
     selectedArtist?.mbid,
   )
@@ -181,6 +181,7 @@ export function AlbumSearchV2({ onSelect }: AlbumSearchV2Props = {}) {
             {selectedArtist.disambiguation ? ` (${selectedArtist.disambiguation})` : ''}
           </p>
         )}
+        {artistError && <p className="mt-1 text-sm text-red-600">Search failed: {artistError}</p>}
         {showArtistDropdown && artistResults.length > 0 && (
           <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
             {artistResults.map((a) => (
@@ -232,6 +233,7 @@ export function AlbumSearchV2({ onSelect }: AlbumSearchV2Props = {}) {
             </button>
           )}
         </div>
+        {rgError && <p className="mt-1 text-sm text-red-600">Search failed: {rgError}</p>}
         {showRgDropdown && rgResults.length > 0 && (
           <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white shadow-lg">
             {rgResults.map((rg) => (

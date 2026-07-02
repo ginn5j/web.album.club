@@ -20,7 +20,10 @@ export interface StorageProvider {
   // Members
   getMembers(): Promise<Member[]>
   getMemberByUserId(userId: string): Promise<Member | null>
-  upsertMember(data: { userId: string; displayName: string; role?: string }): Promise<Member>
+  // role is never written by the app: the members INSERT/UPDATE grants are
+  // column-restricted (005_role_protection.sql) so it always comes from the
+  // DB default; admins are promoted via SQL (see README).
+  upsertMember(data: { userId: string; displayName: string }): Promise<Member>
 
   // Albums
   getCurrentAlbum(): Promise<CurrentAlbum | null>

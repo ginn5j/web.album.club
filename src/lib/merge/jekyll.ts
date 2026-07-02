@@ -1,11 +1,5 @@
 import type { DiscussionData } from '../../types/discussion'
-
-function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
+import { slugify } from '../slugify'
 
 function formatDate(isoString: string): string {
   return isoString.slice(0, 10) // YYYY-MM-DD
