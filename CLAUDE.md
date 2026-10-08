@@ -16,7 +16,7 @@ npm run test:coverage # Vitest with v8 coverage (text + lcov)
 npx vitest run src/lib/merge/__tests__/merger.test.ts
 ```
 
-**Node.js is not installed on this machine.** Do not attempt to run `npm install`, `npm run`, `npx`, or `tsc` locally. All CI (lint → test → build → deploy) runs on GitHub Actions.
+These run locally after `npm install`. CI (lint → test → build → deploy) runs on GitHub Actions.
 
 ## Architecture
 
