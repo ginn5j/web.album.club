@@ -29,11 +29,11 @@ Album Club is a SPA where small groups listen to music together. Members private
 - **Realtime:** `postgres_changes` subscriptions on `albums` and `reveals` (no polling).
 - **GitHub API:** used only for optional Jekyll blog publishing (`PublishButton.tsx` → `src/lib/github/files.ts`, `createCommitOnBranch` GraphQL mutation). Each member's publish PAT is stored in `member_settings`.
 
-**Database tables** (schema in `supabase/setup/001_initial.sql`, RLS in `002_rls.sql`, realtime publication in `003_realtime.sql`):
+**Database tables** (schema in `supabase/setup/001_initial.sql`, RLS in `002_rls.sql`, realtime publication in `003_realtime.sql`; `004_hardening.sql` adds indexes, `search_path` pinning and the album cleanup trigger, and `005_role_protection.sql` restricts member column grants — both must be applied manually on existing deployments):
 
 | Table | Purpose | Access (RLS) |
 |---|---|---|
-| `members` | club roster | all members read; own row insert/update |
+| `members` | club roster | all members read; own row insert/update, limited to `display_name` (`role` always comes from the default; see `005_role_protection.sql`) |
 | `albums` | one row per album, `is_current` flags the active one | members read/write/delete |
 | `tags`, `notes` | per-user per-album, private until reveal | own rows always; others' rows only once `is_revealed(album_id)` |
 | `reveals` | reveal events | members read; insert own only |
@@ -68,7 +68,7 @@ Album Club is a SPA where small groups listen to music together. Members private
 
 - **MusicBrainz:** 1.1s rate limit enforced in `musicbrainz/client.ts`; 500ms debounce on search input
 - **Album swap:** `setCurrentAlbum` deletes the previous current album unless it has a discussion (prevents abandoned albums accumulating)
-- **Album IDs are per-pick, not per-release:** `buildCurrentAlbum` appends a random suffix to the MBID/slug. `tags`/`notes`/`reveals`/`discussions` key on this id with no FK cleanup, so reusing an id across rounds would resurface stale rows (worst case: an old reveal instantly unmasks the new round)
+- **Album IDs are per-pick, not per-release:** `buildCurrentAlbum` appends a random suffix to the MBID/slug. `tags`/`notes`/`reveals`/`discussions` key on this id with no FK. The `albums_cleanup` trigger (`004_hardening.sql`) deletes tags/notes/reveals when an album row is deleted, but an album kept for its discussion keeps its rows, so reusing an id across rounds would resurface stale rows (worst case: an old reveal instantly unmasks the new round)
 - **TypeScript strict mode:** `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` are all on
 - **ESLint:** classic config (`.eslintrc.cjs`), ESLint 8 + typescript-eslint 7 + react-hooks; runs in CI before tests
 
