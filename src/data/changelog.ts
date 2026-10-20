@@ -6,6 +6,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: '2026-10-20',
+    title: 'Album search fixes',
+    items: [
+      'Artist-filtered album search now finds albums released under a performance name (e.g. Johnny Blue Skies)',
+      'Picked albums now show the full artist credit, including featured artists and backing bands',
+    ],
+  },
+  {
     date: '2026-07-02',
     title: 'Review round 3',
     items: [

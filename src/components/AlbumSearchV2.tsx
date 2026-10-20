@@ -43,6 +43,7 @@ export function AlbumSearchV2({ onSelect }: AlbumSearchV2Props = {}) {
   const { results: rgResults, loading: rgLoading, error: rgError } = useReleaseGroupSearch(
     selectedRg ? '' : rgQuery,
     selectedArtist?.mbid,
+    selectedArtist?.name,
   )
 
   useEffect(() => {

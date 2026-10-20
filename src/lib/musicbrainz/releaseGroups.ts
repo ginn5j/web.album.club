@@ -1,11 +1,6 @@
 import { MUSICBRAINZ_API_BASE } from '../../constants/config'
 import { mbFetch } from './client'
-
-interface MBArtistCredit {
-  name?: string
-  artist?: { name: string }
-  joinphrase?: string
-}
+import { formatArtistCredit, type MBArtistCredit } from './artistCredit'
 
 interface MBReleaseGroup {
   id: string
@@ -70,8 +65,16 @@ export interface ReleaseInGroup {
 export async function searchReleaseGroups(
   query: string,
   artistMbid?: string,
+  artistName?: string,
 ): Promise<ReleaseGroupResult[]> {
-  const luceneQuery = artistMbid ? `${query} AND arid:${artistMbid}` : query
+  // A release group credited under a performance name can belong to a
+  // different artist entity (Johnny Blue Skies is credited to Sturgill
+  // Simpson's MBID), so arid alone misses it; also match the credited name.
+  let artistFilter = artistMbid ? `arid:${artistMbid}` : ''
+  if (artistMbid && artistName) {
+    artistFilter = `(${artistFilter} OR artist:"${artistName.replace(/["\\]/g, '\\$&')}")`
+  }
+  const luceneQuery = artistFilter ? `(${query}) AND ${artistFilter}` : query
   const url =
     `${MUSICBRAINZ_API_BASE}/release-group` +
     `?query=${encodeURIComponent(luceneQuery)}&limit=10&fmt=json`
@@ -80,10 +83,7 @@ export async function searchReleaseGroups(
   const data: MBReleaseGroupSearchResponse = await res.json()
 
   return (data['release-groups'] ?? []).map((rg) => {
-    const credits = rg['artist-credit'] ?? []
-    const artistCredit =
-      credits.map((c) => (c.name ?? c.artist?.name ?? '') + (c.joinphrase ?? '')).join('') ||
-      'Unknown Artist'
+    const artistCredit = formatArtistCredit(rg['artist-credit'])
     const firstReleaseYear = rg['first-release-date']
       ? parseInt(rg['first-release-date'].slice(0, 4), 10)
       : undefined

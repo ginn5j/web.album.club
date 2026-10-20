@@ -68,6 +68,17 @@ describe('lookupRelease', () => {
       expect(album.artist).toBe('Canonical Name')
     })
 
+    it('joins multiple credits with their join phrases', async () => {
+      mockMbFetch.mockResolvedValueOnce(makeOkResponse(makeRelease({
+        'artist-credit': [
+          { name: 'Johnny Blue Skies', artist: { name: 'Sturgill Simpson' }, joinphrase: ' & ' },
+          { name: 'the Dark Clouds', artist: { name: 'The Dark Clouds' } },
+        ],
+      })))
+      const { album } = await lookupRelease(MBID)
+      expect(album.artist).toBe('Johnny Blue Skies & the Dark Clouds')
+    })
+
     it('falls back to "Unknown Artist" when artist-credit is absent', async () => {
       const release = makeRelease()
       delete release['artist-credit']
