@@ -98,6 +98,25 @@ describe('searchReleaseGroups', () => {
     expect(url).toContain(encodeURIComponent(`arid:${artistMbid}`))
   })
 
+  it('also matches the credited artist name when artistName is provided', async () => {
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ 'release-groups': [] }))
+    const artistMbid = '94503728-8a9b-4d16-a2ee-963dba65ab32'
+    await searchReleaseGroups('Mutiny After', artistMbid, 'Johnny Blue Skies')
+    const url = mockMbFetch.mock.calls[0][0] as string
+    expect(url).toContain(
+      encodeURIComponent(
+        `(Mutiny After) AND (arid:${artistMbid} OR artist:"Johnny Blue Skies")`,
+      ),
+    )
+  })
+
+  it('escapes quotes and backslashes in the artist name', async () => {
+    mockMbFetch.mockResolvedValueOnce(makeOkResponse({ 'release-groups': [] }))
+    await searchReleaseGroups('x', 'mbid', 'A "B" \\ C')
+    const url = mockMbFetch.mock.calls[0][0] as string
+    expect(url).toContain(encodeURIComponent('artist:"A \\"B\\" \\\\ C"'))
+  })
+
   it('handles a missing release-groups key gracefully', async () => {
     mockMbFetch.mockResolvedValueOnce(makeOkResponse({}))
     const results = await searchReleaseGroups('anything')
