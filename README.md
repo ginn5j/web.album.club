@@ -172,7 +172,7 @@ Every push to `main` triggers `.github/workflows/deploy.yml`, which:
 
 ## Building locally
 
-Node.js 20+ required (CI builds on Node 22). Create a `.env.local` file with the Supabase variables:
+Node.js 24, pinned in `.node-version` (read by CI and mise). Create a `.env.local` file with the Supabase variables:
 
 ```sh
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
