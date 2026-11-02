@@ -5,18 +5,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev           # Dev server at http://localhost:5173
-npm run build         # tsc + vite build → dist/
-npm run lint          # ESLint on src (.eslintrc.cjs)
-npm test              # Vitest (single run, CI mode)
-npm run test:watch    # Vitest watch mode
-npm run test:coverage # Vitest with v8 coverage (text + lcov)
+pnpm dev              # Dev server at http://localhost:5173
+pnpm build            # tsc + vite build → dist/
+pnpm lint             # ESLint on src (.eslintrc.cjs)
+pnpm test             # Vitest (single run, CI mode)
+pnpm test:watch       # Vitest watch mode
+pnpm test:coverage    # Vitest with v8 coverage (text + lcov)
 
 # Run a single test file:
-npx vitest run src/lib/merge/__tests__/merger.test.ts
+pnpm vitest run src/lib/merge/__tests__/merger.test.ts
 ```
 
-These run locally after `npm install`. CI (lint → test → build → deploy) runs on GitHub Actions.
+These run locally after `pnpm install`. CI (lint → test → build → deploy) runs on GitHub Actions.
 
 ## Architecture
 
