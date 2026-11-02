@@ -172,7 +172,7 @@ Every push to `main` triggers `.github/workflows/deploy.yml`, which:
 
 ## Building locally
 
-Node.js 24, pinned in `.node-version` (read by CI and mise). Create a `.env.local` file with the Supabase variables:
+Node.js 24, pinned in `.node-version` (read by CI and mise), and pnpm, pinned by `packageManager` in `package.json`. Create a `.env.local` file with the Supabase variables:
 
 ```sh
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -180,10 +180,10 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 ```
 
 ```sh
-npm install
-npm run dev        # http://localhost:5173
-npm run build      # production build → dist/
-npm test           # run test suite
+pnpm install
+pnpm dev           # http://localhost:5173
+pnpm build         # production build → dist/
+pnpm test          # run test suite
 ```
 
 ---
