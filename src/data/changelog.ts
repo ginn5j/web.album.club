@@ -6,6 +6,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    date: '2026-11-13',
+    title: 'Published post header fix',
+    items: [
+      'Published posts now set the cover art as header.image (was a stray header.header key). If you saved a custom post template in Settings, update it there too',
+    ],
+  },
+  {
     date: '2026-10-20',
     title: 'Album search fixes',
     items: [

@@ -33,7 +33,7 @@ members: {{members_list}}
 picked_by: "{{picked_by}}"
 header:
   teaser: "{{cover_art}}"
-  header: "{{cover_art}}"
+  image: "{{cover_art}}"
 permalink: {{permalink}}
 ---
 
@@ -158,7 +158,7 @@ export function generateJekyllPost(
     `members: ${vars.members_list}`,
     `picked_by: "${vars.picked_by}"`,
     ...(album.coverArtUrl
-      ? [`header:`, `  teaser: "${vars.cover_art}"`, `  header: "${vars.cover_art}"`]
+      ? [`header:`, `  teaser: "${vars.cover_art}"`, `  image: "${vars.cover_art}"`]
       : []),
     `permalink: ${vars.permalink}`,
     '---',
