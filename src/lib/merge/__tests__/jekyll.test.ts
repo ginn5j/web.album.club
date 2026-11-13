@@ -137,7 +137,7 @@ describe('generateJekyllPost', () => {
     const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE)
     expect(post).toContain('header:')
     expect(post).toContain('  teaser: "https://example.com/cover.jpg"')
-    expect(post).toContain('  header: "https://example.com/cover.jpg"')
+    expect(post).toContain('  image: "https://example.com/cover.jpg"')
   })
 
   it('omits the header block when coverArtUrl is absent', () => {
