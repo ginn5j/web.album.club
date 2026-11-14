@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Upload, ExternalLink } from 'lucide-react'
 import { Button } from './ui/Button'
-import { generateJekyllPost, generateJekyllFilename } from '../lib/merge/jekyll'
-import { commitFileToRepo } from '../lib/github/files'
+import { generateJekyllPost, generateJekyllFilename, generateCoverArtPath } from '../lib/merge/jekyll'
+import { commitFiles } from '../lib/github/files'
+import type { FileAddition } from '../lib/github/files'
+import { fetchCoverArt } from '../lib/github/coverArt'
 import { backend } from '../lib/backends'
 import { useAuth } from '../lib/auth/useAuth'
 import type { DiscussionData } from '../types/discussion'
@@ -21,6 +23,7 @@ export function PublishButton({ discussion }: PublishButtonProps) {
   const [memberSettings, setMemberSettings] = useState<MemberSettingsData | null>(null)
   const [publishing, setPublishing] = useState(false)
   const [published, setPublished] = useState(false)
+  const [coverNotCaptured, setCoverNotCaptured] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [publishDate, setPublishDate] = useState(() => new Date().toISOString())
 
@@ -51,17 +54,37 @@ export function PublishButton({ discussion }: PublishButtonProps) {
     setPublishing(true)
     setError(null)
     try {
-      const post = generateJekyllPost(discussion, publishDate, output.template)
+      // Commit the cover with the post so it is served from the blog itself.
+      // If it can't be downloaded the post keeps the remote URL.
+      const files: FileAddition[] = []
+      let coverArt: string | undefined
+      const remoteCover = discussion.album.coverArtUrl
+      const captureCover = Boolean(remoteCover && output.assetsPath.trim())
+      if (remoteCover && captureCover) {
+        const cover = await fetchCoverArt(remoteCover)
+        if (cover) {
+          const coverPath = generateCoverArtPath(
+            discussion,
+            output.assetsPath.trim(),
+            publishDate,
+            cover.extension,
+          )
+          files.push({ path: coverPath, content: cover.bytes })
+          coverArt = `/${coverPath}`
+        }
+      }
+      const post = generateJekyllPost(discussion, publishDate, output.template, coverArt)
       const path = generateJekyllFilename(discussion, output.postsPath, publishDate)
-      await commitFileToRepo(
+      files.unshift({ path, content: post })
+      await commitFiles(
         memberSettings.publishPat,
         output.owner,
         output.repo,
         output.branch,
-        path,
         `Publish discussion: ${discussion.album.title}`,
-        post,
+        files,
       )
+      setCoverNotCaptured(captureCover && !coverArt)
       setPublished(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Publish failed')
@@ -91,6 +114,11 @@ export function PublishButton({ discussion }: PublishButtonProps) {
           <span className="text-sm text-green-600 flex items-center gap-1">
             <ExternalLink className="h-3 w-3" />
             Published to {output.owner}/{output.repo}
+          </span>
+        )}
+        {published && coverNotCaptured && (
+          <span className="text-sm text-amber-600">
+            Cover art could not be downloaded; the post links to the remote image.
           </span>
         )}
         {error && <span className="text-sm text-red-600">{error}</span>}

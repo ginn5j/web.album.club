@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { generateJekyllFilename, generateJekyllPost, DEFAULT_TEMPLATE } from '../jekyll'
+import {
+  generateJekyllFilename,
+  generateJekyllPost,
+  generateCoverArtPath,
+  DEFAULT_TEMPLATE,
+} from '../jekyll'
 import type { DiscussionData } from '../../../types/discussion'
 
 const PUBLISH_DATE = '2024-06-15T20:00:00Z'
@@ -327,5 +332,38 @@ describe('generateJekyllPost with custom template', () => {
   it('substitutes {{date}} with the publish date', () => {
     const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE, '{{date}}')
     expect(post).toBe(PUBLISH_DATE)
+  })
+})
+
+// ── cover art capture ────────────────────────────────────────────────────────
+
+describe('generateCoverArtPath', () => {
+  it('uses the post basename under the interpolated assets folder', () => {
+    expect(
+      generateCoverArtPath(baseDiscussion, 'assets/{{year}}/album-club', PUBLISH_DATE, 'jpg'),
+    ).toBe('assets/2024/album-club/2024-06-15-radiohead-ok-computer.jpg')
+  })
+
+  it('strips leading and trailing slashes from the assets folder', () => {
+    expect(generateCoverArtPath(baseDiscussion, '/assets/covers/', PUBLISH_DATE, 'png')).toBe(
+      'assets/covers/2024-06-15-radiohead-ok-computer.png',
+    )
+  })
+})
+
+describe('generateJekyllPost with a captured cover', () => {
+  const LOCAL = '/assets/2024/album-club/2024-06-15-radiohead-ok-computer.jpg'
+
+  it('replaces the remote cover URL in the default front matter', () => {
+    const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE, undefined, LOCAL)
+    expect(post).toContain(`cover_art: "${LOCAL}"`)
+    expect(post).toContain(`  teaser: "${LOCAL}"`)
+    expect(post).toContain(`  image: "${LOCAL}"`)
+    expect(post).not.toContain('https://example.com/cover.jpg')
+  })
+
+  it('replaces {{cover_art}} in a custom template', () => {
+    const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE, 'img: {{cover_art}}', LOCAL)
+    expect(post).toBe(`img: ${LOCAL}`)
   })
 })

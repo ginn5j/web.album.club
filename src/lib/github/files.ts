@@ -3,13 +3,20 @@ import { getOctokit, getGraphql } from './client'
 // HEAD OID cache per branch
 const headOidCache = new Map<string, string>()
 
-function encodeContent(content: string): string {
-  return btoa(unescape(encodeURIComponent(content)))
+// Text is encoded as UTF-8; bytes (e.g. an image) are passed through as-is.
+function encodeContent(content: string | Uint8Array): string {
+  if (typeof content === 'string') return btoa(unescape(encodeURIComponent(content)))
+  let binary = ''
+  const CHUNK = 0x8000 // keeps String.fromCharCode's argument list small
+  for (let i = 0; i < content.length; i += CHUNK) {
+    binary += String.fromCharCode(...content.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
 }
 
 export interface FileAddition {
   path: string
-  content: string
+  content: string | Uint8Array
 }
 
 const CREATE_COMMIT_MUTATION = `
@@ -102,17 +109,4 @@ export async function commitFiles(
     headOidCache.set(`${owner}/${repo}/${branch}`, newOid)
     return newOid
   }
-}
-
-// Write a single file to an external repo (for Jekyll publishing)
-export async function commitFileToRepo(
-  pat: string,
-  owner: string,
-  repo: string,
-  branch: string,
-  path: string,
-  message: string,
-  content: string,
-): Promise<void> {
-  await commitFiles(pat, owner, repo, branch, message, [{ path, content }])
 }

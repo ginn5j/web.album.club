@@ -29,7 +29,7 @@ Album Club is a SPA where small groups listen to music together. Members private
 - **Realtime:** `postgres_changes` subscriptions on `albums` and `reveals` (no polling).
 - **GitHub API:** used only for optional Jekyll blog publishing (`PublishButton.tsx` → `src/lib/github/files.ts`, `createCommitOnBranch` GraphQL mutation). Each member's publish PAT is stored in `member_settings`.
 
-**Database tables** (schema in `supabase/setup/001_initial.sql`, RLS in `002_rls.sql`, realtime publication in `003_realtime.sql`; `004_hardening.sql` adds indexes, `search_path` pinning and the album cleanup trigger, and `005_role_protection.sql` restricts member column grants — both must be applied manually on existing deployments):
+**Database tables** (schema in `supabase/setup/001_initial.sql`, RLS in `002_rls.sql`, realtime publication in `003_realtime.sql`; `004_hardening.sql` adds indexes, `search_path` pinning and the album cleanup trigger, `005_role_protection.sql` restricts member column grants, and `006_cover_art_assets.sql` adds `member_settings.output_assets_path` — all three must be applied manually on existing deployments):
 
 | Table | Purpose | Access (RLS) |
 |---|---|---|
@@ -58,6 +58,7 @@ Album Club is a SPA where small groups listen to music together. Members private
 | `src/lib/merge/merger.ts` | Merges all members' tags+notes into a discussion object |
 | `src/lib/merge/jekyll.ts` | Discussion → Jekyll Markdown post (templates, YAML escaping) |
 | `src/lib/github/files.ts` | `commitFiles()` via GraphQL — Jekyll publishing only |
+| `src/lib/github/coverArt.ts` | Downloads the album cover (1200px, else the stored 500px) for publishing |
 | `src/lib/musicbrainz/` | Album/artist search + release lookup |
 | `src/constants/config.ts` | API URLs, MusicBrainz rate-limit/debounce constants |
 | `src/App.tsx` | Root layout, routing, auth gating, member roster loading |
@@ -66,6 +67,7 @@ Album Club is a SPA where small groups listen to music together. Members private
 
 - **Changelog is manual:** the About page changelog is the hardcoded array in `src/data/changelog.ts`. When making a user-visible change, add or extend an entry there (newest first, `YYYY-MM-DD`).
 
+- **Cover art capture:** publishing commits the cover image and the post in one `commitFiles` call and points `{{cover_art}}` at the saved copy (`/<assets path>/<post basename>.<ext>`). If the download fails, or the member's cover art path is blank, the post keeps the remote URL
 - **MusicBrainz:** 1.1s rate limit enforced in `musicbrainz/client.ts`; 500ms debounce on search input
 - **Album swap:** `setCurrentAlbum` deletes the previous current album unless it has a discussion (prevents abandoned albums accumulating)
 - **Album IDs are per-pick, not per-release:** `buildCurrentAlbum` appends a random suffix to the MBID/slug. `tags`/`notes`/`reveals`/`discussions` key on this id with no FK. The `albums_cleanup` trigger (`004_hardening.sql`) deletes tags/notes/reveals when an album row is deleted, but an album kept for its discussion keeps its rows, so reusing an id across rounds would resurface stale rows (worst case: an old reveal instantly unmasks the new round)

@@ -7,8 +7,10 @@ export interface ChangelogEntry {
 export const changelog: ChangelogEntry[] = [
   {
     date: '2026-11-13',
-    title: 'Published post header fix',
+    title: 'Cover art saved with published posts',
     items: [
+      'Publishing now saves the album cover (1200px when available) into your blog repo alongside the post, so posts no longer load it from Cover Art Archive',
+      'New "Cover art path" setting (default assets/{{year}}/album-club); leave it blank to keep linking to the remote image',
       'Published posts now set the cover art as header.image (was a stray header.header key). If you saved a custom post template in Settings, update it there too',
     ],
   },

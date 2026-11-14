@@ -53,6 +53,7 @@ permalink: {{permalink}}
 function buildTemplateVars(
   discussion: DiscussionData,
   publishDate: string,
+  coverArt?: string,
 ): Record<string, string> {
   const { album, songs, members, pickedBy, discussedAt } = discussion
   const memberEntries = Object.entries(members)
@@ -95,7 +96,7 @@ function buildTemplateVars(
     release_year: album.releaseYear != null ? String(album.releaseYear) : '',
     genre: escapeYamlQuotes(album.genre ?? ''),
     mbid: album.mbid ?? '',
-    cover_art: album.coverArtUrl ?? '',
+    cover_art: coverArt ?? album.coverArtUrl ?? '',
     members_list: `[${memberNames.map((n) => `"${escapeYamlQuotes(n)}"`).join(', ')}]`,
     picked_by: escapeYamlQuotes(pickedByName),
     permalink: `/blog/${year}/${month}/${day}/${artistSlug}-${titleSlug}/`,
@@ -126,15 +127,34 @@ export function generateJekyllFilename(
   return `${interpolatedPath}/${filename}`
 }
 
+// Repo path for a captured cover image: the post's own basename under the
+// assets folder, so the image sits next to nothing else it could collide with.
+// Prefix it with '/' to get the site-relative URL the post refers to.
+export function generateCoverArtPath(
+  discussion: DiscussionData,
+  assetsPath: string,
+  publishDate: string,
+  extension: string,
+): string {
+  const vars = buildTemplateVars(discussion, publishDate)
+  const dir = applyTemplate(assetsPath, vars).replace(/^\/+|\/+$/g, '')
+  const filename = `${vars.year}-${vars.month}-${vars.day}-${vars.artist_slug}-${vars.title_slug}.${extension}`
+  return `${dir}/${filename}`
+}
+
 // Without a custom template, front matter is assembled line by line so that
 // absent optional fields (release year, genre, mbid, cover art) are omitted
 // entirely rather than emitted with empty values.
+//
+// coverArt overrides the album's remote cover URL in {{cover_art}}; publishing
+// passes the site-relative path of the image it commits alongside the post.
 export function generateJekyllPost(
   discussion: DiscussionData,
   publishDate: string,
   template?: string,
+  coverArt?: string,
 ): string {
-  const vars = buildTemplateVars(discussion, publishDate)
+  const vars = buildTemplateVars(discussion, publishDate, coverArt)
 
   if (template) {
     return applyTemplate(template, vars)
@@ -154,10 +174,10 @@ export function generateJekyllPost(
     album.genre ? `genre: "${vars.genre}"` : null,
     `discussed_date: ${vars.discussed_date}`,
     album.mbid ? `mbid: "${vars.mbid}"` : null,
-    album.coverArtUrl ? `cover_art: "${vars.cover_art}"` : null,
+    vars.cover_art ? `cover_art: "${vars.cover_art}"` : null,
     `members: ${vars.members_list}`,
     `picked_by: "${vars.picked_by}"`,
-    ...(album.coverArtUrl
+    ...(vars.cover_art
       ? [`header:`, `  teaser: "${vars.cover_art}"`, `  image: "${vars.cover_art}"`]
       : []),
     `permalink: ${vars.permalink}`,
