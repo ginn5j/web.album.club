@@ -51,6 +51,7 @@ supabase/setup/002_rls.sql              # Row-Level Security policies + grants
 supabase/setup/003_realtime.sql         # Enable Realtime on albums + reveals
 supabase/setup/004_hardening.sql        # Indexes, search_path pinning, cleanup trigger
 supabase/setup/005_role_protection.sql  # Column-restricted member grants (role escalation fix)
+supabase/setup/006_cover_art_assets.sql # Cover art path setting for Jekyll publishing
 ```
 
 ### 3. Enable email authentication
@@ -114,6 +115,7 @@ Any member who wants to publish discussions to a Jekyll blog configures it in **
 | Blog repo owner | GitHub username or org that owns the blog repo |
 | Blog repo name | Repo name (e.g. `alice.github.io`) |
 | Posts path | Directory for posts — supports `{{year}}`, `{{month}}`, `{{day}}`, `{{artist_slug}}`, `{{title_slug}}` variables (e.g. `_posts/{{year}}/{{month}}`) |
+| Cover art path | Directory the album cover is committed to with the post (default `assets/{{year}}/album-club`, same variables as the posts path). The post then refers to the saved copy; leave blank to link to the remote Cover Art Archive image |
 | Branch | Target branch (usually `main`) |
 | Publish PAT | GitHub PAT with `Contents: Read and write` on the blog repo |
 
@@ -229,7 +231,8 @@ supabase/
 │   ├── 002_rls.sql      # Row-Level Security policies + authenticated grants
 │   ├── 003_realtime.sql # Enable Realtime publication for albums + reveals
 │   ├── 004_hardening.sql # Indexes, search_path pinning, album cleanup trigger
-│   └── 005_role_protection.sql # Column-restricted member grants (role escalation fix)
+│   ├── 005_role_protection.sql # Column-restricted member grants (role escalation fix)
+│   └── 006_cover_art_assets.sql # Cover art path setting for Jekyll publishing
 └── migration/
     ├── grant_migration.sql   # Run before /migrate — temporary service_role access
     ├── revoke_migration.sql  # Run after /migrate — removes service_role access

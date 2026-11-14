@@ -1,4 +1,5 @@
 import { supabase } from './client'
+import { DEFAULT_ASSETS_PATH } from '../types'
 import type { StorageProvider, MemberSettingsData } from '../types'
 import type { CurrentAlbum } from '../../../types/album'
 import type { TagValue, DiscussionData } from '../../../types/discussion'
@@ -276,6 +277,8 @@ export const supabaseStorage: StorageProvider = {
         owner: row.output_owner as string,
         repo: row.output_repo as string,
         postsPath: (row.output_posts_path as string) ?? '_posts',
+        // Absent until 006_cover_art_assets.sql is applied.
+        assetsPath: (row.output_assets_path as string | null | undefined) ?? DEFAULT_ASSETS_PATH,
         branch: (row.output_branch as string) ?? 'main',
         template: row.output_template as string | undefined,
       }
@@ -291,6 +294,7 @@ export const supabaseStorage: StorageProvider = {
         output_owner: settings.output?.owner ?? null,
         output_repo: settings.output?.repo ?? null,
         output_posts_path: settings.output?.postsPath ?? '_posts',
+        output_assets_path: settings.output?.assetsPath ?? DEFAULT_ASSETS_PATH,
         output_branch: settings.output?.branch ?? 'main',
         output_template: settings.output?.template ?? null,
         updated_at: new Date().toISOString(),

@@ -3,10 +3,14 @@ import type { TagValue, DiscussionData } from '../../types/discussion'
 import type { Member } from '../../types/member'
 import type { WishlistItem } from '../../types/wishlist'
 
+export const DEFAULT_ASSETS_PATH = 'assets/{{year}}/album-club'
+
 export interface OutputSettings {
   owner: string
   repo: string
   postsPath: string
+  // Repo folder the cover art is committed to; '' keeps the remote URL.
+  assetsPath: string
   branch: string
   template?: string
 }

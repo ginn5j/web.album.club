@@ -7,6 +7,7 @@ import { backend } from '../lib/backends'
 import { useAuth } from '../lib/auth/useAuth'
 import { DEFAULT_TEMPLATE } from '../lib/merge/jekyll'
 import { loadSearchStyle, saveSearchStyle } from '../lib/settings'
+import { DEFAULT_ASSETS_PATH } from '../lib/backends/types'
 import type { MemberSettingsData } from '../lib/backends/types'
 import type { SearchStyle } from '../lib/settings'
 
@@ -17,6 +18,7 @@ export function SettingsPage() {
   const [outputOwner, setOutputOwner] = useState('')
   const [outputRepo, setOutputRepo] = useState('')
   const [outputPostsPath, setOutputPostsPath] = useState('_posts/{{year}}/{{month}}')
+  const [outputAssetsPath, setOutputAssetsPath] = useState(DEFAULT_ASSETS_PATH)
   const [outputBranch, setOutputBranch] = useState('main')
   const [publishPat, setPublishPat] = useState('')
   const [outputTemplate, setOutputTemplate] = useState('')
@@ -34,6 +36,7 @@ export function SettingsPage() {
       setOutputOwner(ms.output.owner)
       setOutputRepo(ms.output.repo)
       setOutputPostsPath(ms.output.postsPath)
+      setOutputAssetsPath(ms.output.assetsPath)
       setOutputBranch(ms.output.branch)
       setOutputTemplate(ms.output.template ?? '')
       if (ms.publishPat) setPublishPat(ms.publishPat)
@@ -52,6 +55,7 @@ export function SettingsPage() {
             owner: outputOwner,
             repo: outputRepo,
             postsPath: outputPostsPath,
+            assetsPath: outputAssetsPath.trim(),
             branch: outputBranch,
             template: outputTemplate || undefined,
           },
@@ -149,6 +153,13 @@ export function SettingsPage() {
           hint="Supports variables: {{year}}, {{month}}, {{day}}, {{artist_slug}}, {{title_slug}}. Without variables, all posts are placed directly in this folder. Example: _posts/{{year}}"
         />
         <Input
+          label="Cover art path"
+          value={outputAssetsPath}
+          onChange={(e) => setOutputAssetsPath(e.target.value)}
+          placeholder={DEFAULT_ASSETS_PATH}
+          hint="Folder the album cover is saved to when publishing, so the post serves it from your blog. Supports the same variables as the posts path. Leave blank to link to the remote cover image instead."
+        />
+        <Input
           label="Branch"
           value={outputBranch}
           onChange={(e) => setOutputBranch(e.target.value)}
@@ -208,7 +219,7 @@ export function SettingsPage() {
                     ['{{release_year}}', 'Release year, or empty'],
                     ['{{genre}}', 'Genre, or empty'],
                     ['{{mbid}}', 'MusicBrainz ID, or empty'],
-                    ['{{cover_art}}', 'Cover art URL, or empty'],
+                    ['{{cover_art}}', 'Cover art: site path of the saved image, else the remote URL, or empty'],
                     ['{{members_list}}', 'YAML array of member names'],
                     ['{{picked_by}}', "Picker's display name"],
                     ['{{permalink}}', 'Post permalink path'],
