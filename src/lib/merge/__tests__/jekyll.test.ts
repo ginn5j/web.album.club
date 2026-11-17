@@ -17,7 +17,7 @@ const baseDiscussion: DiscussionData = {
     artist: 'Radiohead',
     releaseYear: 1997,
     genre: 'Alternative Rock',
-    mbid: 'abc-123',
+    mbid: 'b1392450-e666-3926-a536-22c65f834433',
     coverArtUrl: 'https://example.com/cover.jpg',
   },
   songs: [
@@ -164,7 +164,7 @@ describe('generateJekyllPost', () => {
     const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE)
     expect(post).toContain('release_year: 1997')
     expect(post).toContain('genre: "Alternative Rock"')
-    expect(post).toContain('mbid: "abc-123"')
+    expect(post).toContain('mbid: "b1392450-e666-3926-a536-22c65f834433"')
     expect(post).toContain('cover_art: "https://example.com/cover.jpg"')
   })
 
@@ -365,5 +365,140 @@ describe('generateJekyllPost with a captured cover', () => {
   it('replaces {{cover_art}} in a custom template', () => {
     const post = generateJekyllPost(baseDiscussion, PUBLISH_DATE, 'img: {{cover_art}}', LOCAL)
     expect(post).toBe(`img: ${LOCAL}`)
+  })
+})
+
+// ── untrusted input ──────────────────────────────────────────────────────────
+// Song and album text comes from MusicBrainz and member rows; none of it may
+// reach the published post as HTML, Liquid, kramdown attributes or extra YAML.
+
+describe('generateJekyllPost with hostile input', () => {
+  // Stands in for values the database can return despite the declared types.
+  const untyped = (v: unknown) => v as never
+
+  const withAlbum = (album: Partial<DiscussionData['album']>): DiscussionData => ({
+    ...baseDiscussion,
+    album: { ...baseDiscussion.album, ...album },
+  })
+
+  const frontMatterOf = (post: string) => post.split('\n---\n')[0]
+
+  it('makes HTML in a song title inert', () => {
+    const post = generateJekyllPost(
+      { ...baseDiscussion, songs: [{ position: 1, title: '<script>alert(1)</script>' }] },
+      PUBLISH_DATE,
+    )
+    expect(post).not.toContain('<script>')
+    expect(post).toContain('&lt;script>alert(1)&lt;/script>')
+  })
+
+  it('keeps a pipe in a song title inside its table cell', () => {
+    const post = generateJekyllPost(
+      { ...baseDiscussion, songs: [{ position: 1, title: 'Either | Or' }] },
+      PUBLISH_DATE,
+    )
+    expect(post).toContain('| 1 | Either \\| Or | Starter | Bench |')
+  })
+
+  it('escapes Markdown syntax in a song title so it shows as written', () => {
+    const post = generateJekyllPost(
+      { ...baseDiscussion, songs: [{ position: 1, title: '*NSYNC [x](javascript:alert(1))' }] },
+      PUBLISH_DATE,
+    )
+    expect(post).toContain('\\*NSYNC \\[x\\](javascript:alert(1))')
+  })
+
+  it('makes HTML, Liquid and attribute lists in notes inert but keeps Markdown', () => {
+    const notes = [
+      '**Loved** it.',
+      '<img src=x onerror=alert(1)>',
+      '{{ site.github }} {% include x %}',
+      '*hover*{: onmouseover="alert(1)"}',
+    ].join('\n')
+    const post = generateJekyllPost(
+      {
+        ...baseDiscussion,
+        members: { alice: { name: 'Alice', tags: {}, notes } },
+      },
+      PUBLISH_DATE,
+    )
+    expect(post).toContain('**Loved** it.')
+    expect(post).not.toContain('<img')
+    expect(post).not.toContain('{{')
+    expect(post).not.toContain('{%')
+    expect(post).not.toContain('{:')
+    expect(post).toContain('&#123;{ site.github }}')
+  })
+
+  it('makes a hostile display name inert in the heading, table and byline', () => {
+    const post = generateJekyllPost(
+      {
+        ...baseDiscussion,
+        members: {
+          alice: { name: 'Al|ice\n<b>{{x}}', tags: { '1': 'Starter' }, notes: 'Hi.' },
+        },
+      },
+      PUBLISH_DATE,
+    )
+    expect(post).toContain('| # | Song | Al\\|ice &lt;b>&#123;{x}} |')
+    expect(post).toContain("## Al\\|ice &lt;b>&#123;{x}}'s Notes")
+    expect(post).toContain('Picked by Al\\|ice &lt;b>&#123;{x}}.')
+    expect(frontMatterOf(post)).toContain('members: ["Al|ice &lt;b&gt;{{x}}"]')
+  })
+
+  it('cannot add front matter keys through a line break in a quoted value', () => {
+    const post = generateJekyllPost(
+      withAlbum({ title: 'X"\npermalink: /evil/\n---\n<script>' }),
+      PUBLISH_DATE,
+    )
+    const fm = frontMatterOf(post)
+    expect(fm.match(/^permalink:/gm)).toHaveLength(1)
+    expect(fm).toContain('album_title: "X\\" permalink: /evil/ --- &lt;script&gt;"')
+  })
+
+  it('omits a release year that is not an integer', () => {
+    const post = generateJekyllPost(
+      withAlbum({ releaseYear: untyped('2020\npermalink: /evil/') }),
+      PUBLISH_DATE,
+    )
+    expect(post).not.toContain('release_year')
+    expect(post).not.toContain('/evil/')
+  })
+
+  it('omits an mbid that is not a UUID', () => {
+    const post = generateJekyllPost(withAlbum({ mbid: 'x"\nlayout: evil' }), PUBLISH_DATE)
+    expect(post).not.toContain('mbid')
+    expect(post).not.toContain('layout: evil')
+  })
+
+  it('escapes the cover art URL in every place it is used', () => {
+    const post = generateJekyllPost(
+      withAlbum({ coverArtUrl: 'https://example.com/a"\nlayout: evil' }),
+      PUBLISH_DATE,
+    )
+    expect(post).not.toMatch(/^layout:/m)
+    expect(post.match(/https:\/\/example\.com\/a\\" layout: evil"/g)).toHaveLength(3)
+  })
+
+  it('omits a discussed date that is not a date', () => {
+    const post = generateJekyllPost(
+      { ...baseDiscussion, discussedAt: 'x\nlayout: y' },
+      PUBLISH_DATE,
+    )
+    expect(post).toContain('discussed_date: \n')
+    expect(post).not.toMatch(/^layout:/m)
+  })
+
+  it('applies the same escaping through a custom template', () => {
+    const post = generateJekyllPost(
+      {
+        ...withAlbum({ releaseYear: untyped('1\nx: y'), mbid: 'nope' }),
+        songs: [{ position: 1, title: '<b>{% raw %}' }],
+      },
+      PUBLISH_DATE,
+      'year: {{release_year}}\nmbid: "{{mbid}}"\n{{song_table}}',
+    )
+    expect(post).toContain('year: \nmbid: ""\n')
+    expect(post).toContain('&lt;b>&#123;% raw %}')
   })
 })
