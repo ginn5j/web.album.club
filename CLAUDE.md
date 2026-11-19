@@ -74,6 +74,10 @@ Album Club is a SPA where small groups listen to music together. Members private
 - **TypeScript strict mode:** `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` are all on
 - **ESLint:** classic config (`.eslintrc.cjs`), ESLint 8 + typescript-eslint 7 + react-hooks; runs in CI before tests
 
+## Ops (Mac mini)
+
+`ops/` holds the Supabase keep-alive and nightly backup LaunchAgents (see `ops/README.md`); `ops/install.sh` deploys them to `~/.config/album-club/`. The keep-alive treats anon's `42501` permission-denied on `albums` as success, so keep `anon` ungranted, and if that changes, update `ops/keepalive.sh`. Backups dump the `public` and `auth` schemas, so schema changes don't need ops changes, but restores are documented in `ops/RESTORE.md`.
+
 ## Deployment
 
 CI (`.github/workflows/deploy.yml`) runs on push to `main`: lint → tests → build → copy `dist/` to the GitHub Pages repo (`ginn5j/ginn5j.github.io`, directory `album-club`). `VITE_BASE_URL=/album-club` sets the Vite base path; `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` come from repo secrets.

@@ -172,6 +172,10 @@ Every push to `main` triggers `.github/workflows/deploy.yml`, which:
 
 ---
 
+## Keep-alive and backups
+
+[`ops/`](ops/README.md) has launchd jobs that keep a free-plan Supabase project from pausing and take nightly `pg_dump` backups, plus a tested restore procedure.
+
 ## Building locally
 
 Node.js 24, pinned in `.node-version` (read by CI and mise), and pnpm, pinned by `packageManager` in `package.json`. Create a `.env.local` file with the Supabase variables:
